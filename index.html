@@ -228,6 +228,26 @@ function subscribePending(){
   unsubscribers.push(unsub);
 }
 
+
+function subscribeDigest(){
+  ['j','s'].forEach(function(gr){
+    var unsub=onSnapshot(doc(db,'config','digest_'+gr),function(snap){
+      if(!snap.exists())return;
+      var data=snap.data();
+      if(!data||!data.facts)return;
+      var today=gday();
+      if(data.day!==today)return;
+      digestCache[gr]=data;
+      try{localStorage.setItem('dig_'+gr+'_'+today,JSON.stringify(data));}catch(e){}
+      var sp=document.getElementById('sp');
+      if(sp&&!sp.classList.contains('hidden'))return;
+      var ch=getCH();
+      if(ch&&ch.gr===gr)renderContent();
+    });
+    unsubscribers.push(unsub);
+  });
+}
+
 async function updateChild(id,data){
   await setDoc(doc(db,'children',id),data,{merge:true});
 }
@@ -409,13 +429,24 @@ async function callApi(gr){
 }
 
 async function fetchDigest(gr){
-  var ckey='dig_'+gr+'_'+gday();
+  var today=gday();
+  var ckey='dig_'+gr+'_'+today;
   if(digestCache[gr])return digestCache[gr];
   try{var r=localStorage.getItem(ckey);if(r){digestCache[gr]=JSON.parse(r);return digestCache[gr];}}catch(e){}
+  try{
+    var snap=await getDoc(doc(db,'config','digest_'+gr));
+    if(snap.exists()&&snap.data()&&snap.data().day===today&&snap.data().facts){
+      digestCache[gr]=snap.data();
+      try{localStorage.setItem(ckey,JSON.stringify(snap.data()));}catch(e){}
+      return digestCache[gr];
+    }
+  }catch(e){}
   var parsed=await callApi(gr);
   if(parsed){
+    parsed.day=today;
     digestCache[gr]=parsed;
     try{localStorage.setItem(ckey,JSON.stringify(parsed));}catch(e){}
+    try{await setDoc(doc(db,'config','digest_'+gr),parsed);}catch(e){}
   }
   return parsed;
 }
@@ -1003,10 +1034,10 @@ function setupEvents(){
       (async function(){
         toast('Обновляю контент для младших...');
         var dj=await callApi('j');
-        if(dj){digestCache.j=dj;try{localStorage.setItem('dig_j_'+gday(),JSON.stringify(dj));}catch(e){}}
+        if(dj){dj.day=gday();digestCache.j=dj;try{localStorage.setItem('dig_j_'+gday(),JSON.stringify(dj));}catch(e){}try{await setDoc(doc(db,'config','digest_j'),dj);}catch(e){}}
         toast('Обновляю контент для Аслана...');
         var ds=await callApi('s');
-        if(ds){digestCache.s=ds;try{localStorage.setItem('dig_s_'+gday(),JSON.stringify(ds));}catch(e){}}
+        if(ds){ds.day=gday();digestCache.s=ds;try{localStorage.setItem('dig_s_'+gday(),JSON.stringify(ds));}catch(e){}try{await setDoc(doc(db,'config','digest_s'),ds);}catch(e){}}
         if(dj||ds){toast('Контент обновлён для всех! ✓');}
         else{toast('Ошибка — проверь API-ключ');}
         renderParent();
@@ -1077,6 +1108,7 @@ async function init(){
   setupEvents();
   CHILDREN.forEach(function(c){subscribeChild(c.id);});
   subscribePending();
+  subscribeDigest();
   await loadApiKey();
   renderStrip();
   renderContent();
