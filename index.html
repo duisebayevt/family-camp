@@ -999,6 +999,9 @@ function setupEvents(){
     if(pk2){pk(pk2.dataset.pinKey);return;}
     if(t.closest('[data-pin-del]')){pdel();return;}
 
+    // save diary
+    if(t.closest('#btn-save-diary')){await saveDiary();return;}
+
     // mood
     var mb=t.closest('[data-mood]');
     if(mb){await setMood(parseInt(mb.dataset.mood));return;}
