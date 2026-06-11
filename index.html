@@ -323,7 +323,7 @@ function renderToday(el){
 
   var digest=digestCache[ch.gr];
   if(digest){
-    el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(digest,ch.gr,cs)+buildQuizHtml(digest.quiz,cs)+buildDinnerHtml(digest.dinner);
+    el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(digest,ch.gr,cs)+buildWordHtml(digest.word)+buildQuizHtml(digest.quiz,cs)+buildDinnerHtml(digest.dinner);
   } else {
     var fb=FALLBACK[ch.gr];
     el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(fb,ch.gr,cs)+buildDinnerHtml(fb.dinner);
@@ -355,7 +355,7 @@ async function loadAndRender(gr,el,p1,p2,p3,cs){
   var newP2='<div class="card"><div class="ch"><i class="ti ti-mood-smile"></i>Настроение сегодня</div><div class="mrow">'+mh+'</div></div>';
   if(data){
     if(data.weekProject)storeWeekProject(data.weekProject,gr);
-    currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(data,gr,newCs)+buildQuizHtml(data.quiz,newCs)+buildDinnerHtml(data.dinner);
+    currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(data,gr,newCs)+buildWordHtml(data.word)+buildQuizHtml(data.quiz,newCs)+buildDinnerHtml(data.dinner);
   } else {
     var fb=FALLBACK[gr];
     currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(fb,gr,newCs)+buildDinnerHtml(fb.dinner)
@@ -389,18 +389,18 @@ async function callApi(gr){
     +'4. '+questGuide+'\n'
     +'5. В квесте steps — минимум 5 подробных шагов КАК делать.\n'
     +'6. '+projGuide+'\n'
-    +'7. В проекте days — КАЖДЫЙ ДЕНЬ должен содержать: что делать + пошаговую инструкцию КАК (например не "посади семена", а "Возьми стакан, насыпь 2 см земли, сделай ямку пальцем 1 см, положи 2-3 семечка, засыпь, полей 3 ложки воды").\n'    +'8. Викторина — 2 вопроса строго по тексту фактов дня (ответ есть в фактах) + 1 вопрос на размышление по теме дня. 3 варианта ответа, один правильный.\n\n'
+    +'7. В проекте days — КАЖДЫЙ ДЕНЬ должен содержать: что делать + пошаговую инструкцию КАК (например не "посади семена", а "Возьми стакан, насыпь 2 см земли, сделай ямку пальцем 1 см, положи 2-3 семечка, засыпь, полей 3 ложки воды").\n'    +'8. Викторина — 2 вопроса строго по тексту фактов дня (ответ есть в фактах) + 1 вопрос на размышление по теме дня. 3 варианта ответа, один правильный.\n'    +'9. Слово дня — одно интересное слово связанное с темой. Для детей 8-10 лет: простое но необычное. Для подростка 15 лет: из науки, экономики или философии. Объяснение простыми словами + яркая аналогия.\n\n'
     +'Только валидный JSON без markdown:\n'
     +'{"facts":[{"type":"fin","tag":"Финансы","text":"..."},{"type":"phy","tag":"Физика","text":"..."},{"type":"nat","tag":"Природа","text":"..."}],'
     +'"opinion":{"q":"Вопрос?","opts":["А","Б","В"]},'
     +'"quest":{"title":"...","desc":"Зачем это круто (2-3 предл)","steps":["Шаг 1 подробно","Шаг 2","Шаг 3","Шаг 4","Шаг 5"],"pts":'+(isJ?100:200)+',"crit":"Что должно получиться"},'
     +'"weekProject":{"title":"...","desc":"...","mats":["...","...","..."],"days":["День 1: действие + детальная инструкция КАК","День 2: действие + инструкция","День 3: действие + инструкция","День 4: действие + инструкция","День 5: действие + инструкция","День 6: действие + инструкция","День 7: финальное действие + что должно получиться"],"pts":'+(isJ?500:800)+'},'
-    +'"dinner":"Открытый вопрос для семейного обсуждения (не про еду)",' +'"quiz":[{"q":"Вопрос 1?","opts":["А","Б","В"],"ans":0},{"q":"Вопрос 2?","opts":["А","Б","В"],"ans":1},{"q":"Вопрос 3 на размышление?","opts":["А","Б","В"],"ans":2}]}';
+    +'"dinner":"Открытый вопрос для семейного обсуждения (не про еду)",' +'"quiz":[{"q":"Вопрос 1?","opts":["А","Б","В"],"ans":0},{"q":"Вопрос 2?","opts":["А","Б","В"],"ans":1},{"q":"Вопрос 3 на размышление?","opts":["А","Б","В"],"ans":2}],' +'"word":{"w":"Слово","def":"Объяснение простыми словами","ex":"Яркая аналогия или пример из жизни"}}';
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:3500,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4500,messages:[{role:'user',content:prompt}]})
     });
     if(!resp.ok)throw new Error(resp.status);
     var d=await resp.json();
@@ -446,6 +446,16 @@ window.voteOp=async function(i){
   toast('+20 очков!');
 };
 
+
+// ── WORD OF DAY ──
+function buildWordHtml(word){
+  if(!word||!word.w) return '';
+  return '<div class="card"><div class="ch"><i class="ti ti-book"></i>Слово дня</div>'
+    +'<div style="font-size:22px;font-weight:800;color:var(--p);margin-bottom:6px">'+word.w+'</div>'
+    +'<div style="font-size:13px;color:var(--t);line-height:1.5;margin-bottom:8px">'+word.def+'</div>'
+    +'<div style="font-size:12px;color:var(--t2);background:var(--s2);border-radius:var(--rs);padding:8px 10px;line-height:1.5">💡 '+word.ex+'</div>'
+    +'</div>';
+}
 
 // ── QUIZ ──
 function buildQuizHtml(quiz, cs) {
