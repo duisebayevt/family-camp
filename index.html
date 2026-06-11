@@ -167,7 +167,7 @@ const PIN='1234'; // ← СМЕНИ НА СВОЙ
 const CHILDREN=[
   {id:'bakhyt', name:'Бахытжан',age:8, av:'🐆',gr:'j',maxW:900, maxP:4000},
   {id:'zhasmin',name:'Жасмин',  age:9, av:'🦅',gr:'j',maxW:900, maxP:4000},
-  {id:'alikhan',name:'Алихан',  age:10,av:'🦌',gr:'j',maxW:900, maxP:4000},
+  {id:'alikhan',name:'Алихан',  age:11,av:'🦌',gr:'m',maxW:1200,maxP:6000},
   {id:'aslan',  name:'Аслан',   age:15,av:'🐺',gr:'s',maxW:1600,maxP:8000}
 ];
 const DAYS=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
@@ -185,7 +185,7 @@ var curChild=CHILDREN[0].id;
 var curTab='today';
 var childData={};
 var pendingReviews=[];
-var digestCache={};
+var digestCache={j:null,m:null,s:null};
 var apiKey='';
 var unsubscribers=[];
 var pb='';
@@ -230,7 +230,7 @@ function subscribePending(){
 
 
 function subscribeDigest(){
-  ['j','s'].forEach(function(gr){
+  ['j','m','s'].forEach(function(gr){
     var unsub=onSnapshot(doc(db,'config','digest_'+gr),function(snap){
       if(!snap.exists())return;
       var data=snap.data();
@@ -394,14 +394,22 @@ async function callApi(gr){
   var now=new Date();
   var dayNum=Math.floor((Date.now()-new Date('2025-06-09').getTime())/86400000)+1;
   var isJ=(gr==='j');
+  var isM=(gr==='m');
   var questGuide=isJ
     ?'Квест ПРАКТИЧЕСКИЙ — руками: построить, вырастить, смастерить, опыт. НЕ рисование. Примеры: вулкан из соды, прорастить фасоль, мост из бумаги, кристаллы соли, компас из иголки.'
+    :isM
+    ?'Квест практический с элементом логики или анализа: смастерить и объяснить принцип работы, провести опыт и записать наблюдения. Примеры: построить рычаг и измерить силу, вырастить кристаллы и описать процесс.'
     :'Квест интеллектуальный: анализ, исследование, финансовый расчёт, создание плана.';
   var projGuide=isJ
     ?'Проект практический — вырастить, построить, провести опыты. Каждый день — физическое действие с детальной инструкцией.'
+    :isM
+    ?'Проект с практической и исследовательской частью — каждый день физическое действие + наблюдение или вывод.'
     :'Проект — создать что-то полезное: финансовый план, бизнес-идею, исследование, освоить навык.';
+  var ageDesc=isJ?'детей 8-10 лет (игровой тон, простые слова)':isM?'ребёнка 11 лет (уважительный тон без сюсюканья, задания сложнее чем для малышей)':'подростка 15 лет (уважительный, серьёзный тон)';
+  var questPts=isJ?100:isM?150:200;
+  var projPts=isJ?500:isM?650:800;
   var prompt='Сегодня '+DAYS[now.getDay()]+', '+now.getDate()+' '+MON[now.getMonth()]+' 2025. День #'+dayNum+'. Тема: «'+theme+'».\n\n'
-    +'Дайджест для '+(isJ?'детей 8-10 лет (игровой тон, простые слова)':'подростка 15 лет (уважительный, серьёзный тон)')+'.\n\n'
+    +'Дайджест для '+ageDesc+'.\n\n'
     +'ПРАВИЛА:\n'
     +'1. Факты — из РАЗНЫХ стран мира, не только Казахстан. 1 факт может быть о КЗ, 2 других — о мире.\n'
     +'2. Мнение дня — простой жизненный вопрос. БЕЗ слов: лагерь, лето, каникулы.\n'
@@ -413,8 +421,8 @@ async function callApi(gr){
     +'Только валидный JSON без markdown:\n'
     +'{"facts":[{"type":"fin","tag":"Финансы","text":"..."},{"type":"phy","tag":"Физика","text":"..."},{"type":"nat","tag":"Природа","text":"..."}],'
     +'"opinion":{"q":"Вопрос?","opts":["А","Б","В"]},'
-    +'"quest":{"title":"...","desc":"Зачем это круто (2-3 предл)","steps":["Шаг 1 подробно","Шаг 2","Шаг 3","Шаг 4","Шаг 5"],"pts":'+(isJ?100:200)+',"crit":"Что должно получиться"},'
-    +'"weekProject":{"title":"...","desc":"...","mats":["...","...","..."],"days":["День 1: действие + детальная инструкция КАК","День 2: действие + инструкция","День 3: действие + инструкция","День 4: действие + инструкция","День 5: действие + инструкция","День 6: действие + инструкция","День 7: финальное действие + что должно получиться"],"pts":'+(isJ?500:800)+'},'
+    +'"quest":{"title":"...","desc":"Зачем это круто (2-3 предл)","steps":["Шаг 1 подробно","Шаг 2","Шаг 3","Шаг 4","Шаг 5"],"pts":'+questPts+',"crit":"Что должно получиться"},'
+    +'"weekProject":{"title":"...","desc":"...","mats":["...","...","..."],"days":["День 1: действие + детальная инструкция КАК","День 2: действие + инструкция","День 3: действие + инструкция","День 4: действие + инструкция","День 5: действие + инструкция","День 6: действие + инструкция","День 7: финальное действие + что должно получиться"],"pts":'+projPts+'},'
     +'"dinner":"Открытый вопрос для семейного обсуждения (не про еду)",' +'"quiz":[{"q":"Вопрос 1?","opts":["А","Б","В"],"ans":0},{"q":"Вопрос 2?","opts":["А","Б","В"],"ans":1},{"q":"Вопрос 3 на размышление?","opts":["А","Б","В"],"ans":2}],' +'"word":{"w":"Слово","def":"Объяснение простыми словами","ex":"Яркая аналогия или пример из жизни"},'
     +'"diaryPrompt":"Вопрос для дневника?"}';
   try{
@@ -940,7 +948,7 @@ window.doSaveApiKey=async function(){
   var inp=document.getElementById('api-inp');
   if(!inp||!inp.value.trim()){toast('Введи ключ!');return;}
   await saveApiKey(inp.value.trim());
-  digestCache={};
+  digestCache={j:null,m:null,s:null};
   document.getElementById('api-ov').remove();
   toast('Ключ сохранён! ✓');
   setTimeout(function(){renderContent();},300);
@@ -1019,17 +1027,20 @@ function setupEvents(){
       btn3.innerHTML='<div class="spin" style="width:20px;height:20px;border-width:2px;margin:0 auto"></div>';
       btn3.disabled=true;
       // clear all caches
-      digestCache={j:null,s:null};
-      try{localStorage.removeItem('dig_j_'+gday());localStorage.removeItem('dig_s_'+gday());}catch(e){}
+      digestCache={j:null,m:null,s:null};
+      try{localStorage.removeItem('dig_j_'+gday());localStorage.removeItem('dig_m_'+gday());localStorage.removeItem('dig_s_'+gday());}catch(e){}
       // call API sequentially — j first, then s (avoids cache collision)
       (async function(){
         toast('Генерирую проект для младших...');
         var dj=await callApi('j');
         if(dj){digestCache.j=dj;await storeWeekProjectForce(dj.weekProject,'j');}
+        toast('Генерирую проект для Алихана...');
+        var dm=await callApi('m');
+        if(dm){digestCache.m=dm;await storeWeekProjectForce(dm.weekProject,'m');}
         toast('Генерирую проект для Аслана...');
         var ds=await callApi('s');
         if(ds){digestCache.s=ds;await storeWeekProjectForce(ds.weekProject,'s');}
-        if(dj||ds){toast('Проекты готовы для всех! 🌱');}
+        if(dj||dm||ds){toast('Проекты готовы для всех! 🌱');}
         else{toast('Ошибка — проверь API-ключ');}
         renderParent();
       })();
@@ -1039,12 +1050,15 @@ function setupEvents(){
     if(t.closest('#btn-refresh-content')){
       var rbtn=t.closest('#btn-refresh-content');
       rbtn.disabled=true;rbtn.innerHTML='<div class="spin" style="width:20px;height:20px;border-width:2px;margin:0 auto"></div>';
-      digestCache={j:null,s:null};
-      try{localStorage.removeItem('dig_j_'+gday());localStorage.removeItem('dig_s_'+gday());}catch(e){}
+      digestCache={j:null,m:null,s:null};
+      try{localStorage.removeItem('dig_j_'+gday());localStorage.removeItem('dig_m_'+gday());localStorage.removeItem('dig_s_'+gday());}catch(e){}
       (async function(){
         toast('Обновляю контент для младших...');
         var dj=await callApi('j');
         if(dj){dj.day=gday();digestCache.j=dj;try{localStorage.setItem('dig_j_'+gday(),JSON.stringify(dj));}catch(e){}try{await setDoc(doc(db,'config','digest_j'),dj);}catch(e){}}
+        toast('Обновляю контент для Алихана...');
+        var dm=await callApi('m');
+        if(dm){dm.day=gday();digestCache.m=dm;try{localStorage.setItem('dig_m_'+gday(),JSON.stringify(dm));}catch(e){}try{await setDoc(doc(db,'config','digest_m'),dm);}catch(e){}}
         toast('Обновляю контент для Аслана...');
         var ds=await callApi('s');
         if(ds){ds.day=gday();digestCache.s=ds;try{localStorage.setItem('dig_s_'+gday(),JSON.stringify(ds));}catch(e){}try{await setDoc(doc(db,'config','digest_s'),ds);}catch(e){}}
@@ -1126,7 +1140,7 @@ async function init(){
     var newDay=Math.floor(Date.now()/86400000);
     if(newDay!==lastDay){
       lastDay=newDay;
-      digestCache={};
+      digestCache={j:null,m:null,s:null};
       var now=new Date();
       document.getElementById('hdate').textContent=DAYS[now.getDay()]+', '+now.getDate()+' '+MON[now.getMonth()]+' 2025';
       renderContent();
