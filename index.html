@@ -827,7 +827,7 @@ function renderParent(){
     +'<div class="card"><div class="ch"><i class="ti ti-plant"></i>Проект недели</div>'
     +'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Генерируется в понедельник автоматически. Или запусти вручную прямо сейчас для всех детей.</div>'
     +'<button class="btn bg" id="btn-gen-project-parent"><i class="ti ti-sparkles"></i>Сгенерировать проект сейчас</button></div>'
-    +'<div class="card"><div class="ch"><i class="ti ti-history"></i>История выплат</div>'+histHtml+'</div>';
+    +'<div class="card"><div class="ch"><i class="ti ti-refresh"></i>Контент дня</div>'    +'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Обнови факты дня, викторину и слово дня для всех детей прямо сейчас.</div>'    +'<button class="btn bg" id="btn-refresh-content"><i class="ti ti-refresh"></i>Обновить контент</button></div>'    +'<div class="card"><div class="ch"><i class="ti ti-history"></i>История выплат</div>'+histHtml+'</div>';
 }
 
 window.recalc=function(){
@@ -989,6 +989,25 @@ function setupEvents(){
         var ds=await callApi('s');
         if(ds){digestCache.s=ds;await storeWeekProjectForce(ds.weekProject,'s');}
         if(dj||ds){toast('Проекты готовы для всех! 🌱');}
+        else{toast('Ошибка — проверь API-ключ');}
+        renderParent();
+      })();
+      return;
+    }
+    // refresh content
+    if(t.closest('#btn-refresh-content')){
+      var rbtn=t.closest('#btn-refresh-content');
+      rbtn.disabled=true;rbtn.innerHTML='<div class="spin" style="width:20px;height:20px;border-width:2px;margin:0 auto"></div>';
+      digestCache={j:null,s:null};
+      try{localStorage.removeItem('dig_j_'+gday());localStorage.removeItem('dig_s_'+gday());}catch(e){}
+      (async function(){
+        toast('Обновляю контент для младших...');
+        var dj=await callApi('j');
+        if(dj){digestCache.j=dj;try{localStorage.setItem('dig_j_'+gday(),JSON.stringify(dj));}catch(e){}}
+        toast('Обновляю контент для Аслана...');
+        var ds=await callApi('s');
+        if(ds){digestCache.s=ds;try{localStorage.setItem('dig_s_'+gday(),JSON.stringify(ds));}catch(e){}}
+        if(dj||ds){toast('Контент обновлён для всех! ✓');}
         else{toast('Ошибка — проверь API-ключ');}
         renderParent();
       })();
