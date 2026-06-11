@@ -48,6 +48,9 @@ html,body{height:100%;width:100%;background:var(--s);font-family:-apple-system,B
 .oq{font-size:14px;color:var(--t);line-height:1.55;margin-bottom:10px;font-style:italic}
 .oo{display:flex;flex-direction:column;gap:6px}
 .ob{padding:9px 14px;border:1.5px solid var(--b);border-radius:var(--rs);background:var(--w);font-size:13px;color:var(--t);cursor:pointer;text-align:left}
+.qz-opt{display:block;width:100%;padding:9px 14px;border:1.5px solid var(--b);border-radius:var(--rs);background:var(--w);font-size:13px;color:var(--t);cursor:pointer;text-align:left;margin-bottom:6px;transition:all .2s}
+.qz-opt:not([disabled]):hover{border-color:var(--p);background:var(--s2)}
+.qz-opt[disabled]{cursor:default}
 .ob.on{border-color:var(--g);background:var(--gl);color:var(--gd);font-weight:500}
 .qcard{background:var(--w);border:1px solid var(--b);border-radius:var(--r);padding:14px;margin-bottom:10px}
 .qtr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
@@ -320,7 +323,7 @@ function renderToday(el){
 
   var digest=digestCache[ch.gr];
   if(digest){
-    el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(digest,ch.gr,cs)+buildDinnerHtml(digest.dinner);
+    el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(digest,ch.gr,cs)+buildQuizHtml(digest.quiz,cs)+buildDinnerHtml(digest.dinner);
   } else {
     var fb=FALLBACK[ch.gr];
     el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(fb,ch.gr,cs)+buildDinnerHtml(fb.dinner);
@@ -352,7 +355,7 @@ async function loadAndRender(gr,el,p1,p2,p3,cs){
   var newP2='<div class="card"><div class="ch"><i class="ti ti-mood-smile"></i>Настроение сегодня</div><div class="mrow">'+mh+'</div></div>';
   if(data){
     if(data.weekProject)storeWeekProject(data.weekProject,gr);
-    currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(data,gr,newCs)+buildDinnerHtml(data.dinner);
+    currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(data,gr,newCs)+buildQuizHtml(data.quiz,newCs)+buildDinnerHtml(data.dinner);
   } else {
     var fb=FALLBACK[gr];
     currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(fb,gr,newCs)+buildDinnerHtml(fb.dinner)
@@ -386,18 +389,18 @@ async function callApi(gr){
     +'4. '+questGuide+'\n'
     +'5. В квесте steps — минимум 5 подробных шагов КАК делать.\n'
     +'6. '+projGuide+'\n'
-    +'7. В проекте days — КАЖДЫЙ ДЕНЬ должен содержать: что делать + пошаговую инструкцию КАК (например не "посади семена", а "Возьми стакан, насыпь 2 см земли, сделай ямку пальцем 1 см, положи 2-3 семечка, засыпь, полей 3 ложки воды").\n\n'
+    +'7. В проекте days — КАЖДЫЙ ДЕНЬ должен содержать: что делать + пошаговую инструкцию КАК (например не "посади семена", а "Возьми стакан, насыпь 2 см земли, сделай ямку пальцем 1 см, положи 2-3 семечка, засыпь, полей 3 ложки воды").\n'    +'8. Викторина — 2 вопроса строго по тексту фактов дня (ответ есть в фактах) + 1 вопрос на размышление по теме дня. 3 варианта ответа, один правильный.\n\n'
     +'Только валидный JSON без markdown:\n'
     +'{"facts":[{"type":"fin","tag":"Финансы","text":"..."},{"type":"phy","tag":"Физика","text":"..."},{"type":"nat","tag":"Природа","text":"..."}],'
     +'"opinion":{"q":"Вопрос?","opts":["А","Б","В"]},'
     +'"quest":{"title":"...","desc":"Зачем это круто (2-3 предл)","steps":["Шаг 1 подробно","Шаг 2","Шаг 3","Шаг 4","Шаг 5"],"pts":'+(isJ?100:200)+',"crit":"Что должно получиться"},'
     +'"weekProject":{"title":"...","desc":"...","mats":["...","...","..."],"days":["День 1: действие + детальная инструкция КАК","День 2: действие + инструкция","День 3: действие + инструкция","День 4: действие + инструкция","День 5: действие + инструкция","День 6: действие + инструкция","День 7: финальное действие + что должно получиться"],"pts":'+(isJ?500:800)+'},'
-    +'"dinner":"Открытый вопрос для семейного обсуждения (не про еду)"}';
+    +'"dinner":"Открытый вопрос для семейного обсуждения (не про еду)",' +'"quiz":[{"q":"Вопрос 1?","opts":["А","Б","В"],"ans":0},{"q":"Вопрос 2?","opts":["А","Б","В"],"ans":1},{"q":"Вопрос 3 на размышление?","opts":["А","Б","В"],"ans":2}]}';
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:3000,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:3500,messages:[{role:'user',content:prompt}]})
     });
     if(!resp.ok)throw new Error(resp.status);
     var d=await resp.json();
@@ -441,6 +444,50 @@ window.voteOp=async function(i){
   await updateChild(curChild,{vote:i,vday:t});
   await addPoints(curChild,20);
   toast('+20 очков!');
+};
+
+
+// ── QUIZ ──
+function buildQuizHtml(quiz, cs) {
+  if(!quiz||!quiz.length) return '';
+  var today = gday();
+  var done = (cs.quizDone||[]);
+  var quizDay = cs.quizDay||0;
+  if(quizDay !== today) done = [];
+  var h = '<div class="card"><div class="ch"><i class="ti ti-brain"></i>Викторина дня<span style="margin-left:auto;font-size:11px;color:var(--t3)">+30 за каждый ✓</span></div>';
+  quiz.forEach(function(q, qi) {
+    var answered = done.indexOf(qi) >= 0;
+    h += '<div class="qz-q" id="qz'+qi+'" style="margin-bottom:14px">';
+    h += '<div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:8px;line-height:1.4">'+(qi+1)+'. '+q.q+'</div>';
+    q.opts.forEach(function(opt, oi) {
+      var state = '';
+      if(answered) {
+        if(oi === q.ans) state = 'background:var(--gl);border-color:var(--g);color:var(--gd);font-weight:600';
+        else state = 'opacity:0.4';
+      }
+      h += '<button class="qz-opt" data-qi="'+qi+'" data-oi="'+oi+'" data-ans="'+q.ans+'" data-pts="30" '
+        +(answered?'disabled':'')+' style="'+state+'">'
+        +(answered && oi===q.ans ? '✓ ' : '')+opt+'</button>';
+    });
+    h += '</div>';
+  });
+  h += '</div>';
+  return h;
+}
+
+window.answerQuiz = async function(qi, oi, ans, pts) {
+  var today = gday();
+  var cs = getCS();
+  var done = (cs.quizDay===today) ? (cs.quizDone||[]).slice() : [];
+  if(done.indexOf(qi) >= 0) return;
+  done.push(qi);
+  await updateChild(curChild, {quizDone: done, quizDay: today});
+  if(oi === ans) {
+    await addPoints(curChild, pts);
+    toast('Правильно! +'+pts+' очков 🎉');
+  } else {
+    toast('Неверно 😔 Правильный ответ выделен');
+  }
 };
 
 // ── QUESTS ──
@@ -898,6 +945,10 @@ function setupEvents(){
     // vote
     var vb=t.closest('[data-vote]');
     if(vb&&!vb.disabled){await voteOp(parseInt(vb.dataset.vote));return;}
+
+    // quiz answer
+    var qz=t.closest('[data-qi]');
+    if(qz&&!qz.disabled){await answerQuiz(parseInt(qz.dataset.qi),parseInt(qz.dataset.oi),parseInt(qz.dataset.ans),parseInt(qz.dataset.pts));return;}
 
     // photo quest button
     var pq=t.closest('[data-photo-quest]');
