@@ -146,7 +146,7 @@ html,body{height:100%;width:100%;background:var(--s);font-family:-apple-system,B
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import {getFirestore,doc,setDoc,getDoc,onSnapshot,collection,query,orderBy,serverTimestamp,updateDoc,arrayUnion,deleteField,increment} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import {getStorage,ref,uploadString,getDownloadURL} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+
 
 const FB={
   apiKey:"AIzaSyAsSf4P74g4pFo7AN1Gy9wgSbD4S9kbPuQ",
@@ -158,7 +158,6 @@ const FB={
 };
 const app=initializeApp(FB);
 const db=getFirestore(app);
-const storage=getStorage(app);
 
 // ── CONSTANTS ──
 const PIN='1234'; // ← СМЕНИ НА СВОЙ
@@ -187,6 +186,7 @@ var digestCache={};
 var apiKey='';
 var unsubscribers=[];
 var pb='';
+var lastDay=Math.floor(Date.now()/86400000);
 
 // Pre-populate with defaults so UI renders immediately
 CHILDREN.forEach(function(c){
@@ -537,11 +537,6 @@ window.submitPh=async function(qid,pts){
     var now=new Date();
     var ds=DAYS[now.getDay()]+', '+now.getDate()+' '+MON[now.getMonth()]+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     var photoUrl=photo;
-    try{
-      var storRef=ref(storage,'proofs/'+curChild+'_'+qid+'_'+Date.now()+'.jpg');
-      await uploadString(storRef,photo,'data_url');
-      photoUrl=await getDownloadURL(storRef);
-    }catch(e){console.log('Storage fallback:',e);}
     var pendId=curChild+'_'+qid+'_'+Date.now();
     await setDoc(doc(db,'pending',pendId),{
       childId:curChild,childName:getCH().name,childAv:getCH().av,
@@ -1005,6 +1000,16 @@ async function init(){
   await loadApiKey();
   renderStrip();
   renderContent();
+  setInterval(function(){
+    var newDay=Math.floor(Date.now()/86400000);
+    if(newDay!==lastDay){
+      lastDay=newDay;
+      digestCache={};
+      var now=new Date();
+      document.getElementById('hdate').textContent=DAYS[now.getDay()]+', '+now.getDate()+' '+MON[now.getMonth()]+' 2025';
+      renderContent();
+    }
+  },60000);
 }
 init();
 </script>
