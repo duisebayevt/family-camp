@@ -345,10 +345,10 @@ function renderToday(el){
 
   var digest=digestCache[ch.gr];
   if(digest){
-    el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(digest,ch.gr,cs)+buildWordHtml(digest.word)+buildQuizHtml(digest.quiz,cs)+buildDinnerHtml(digest.dinner);
+    el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(digest,ch.gr,cs)+buildWordHtml(digest.word)+buildQuizHtml(digest.quiz,cs);
   } else {
     var fb=FALLBACK[ch.gr]||FALLBACK['j'];
-    el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(fb,ch.gr,cs)+buildDinnerHtml(fb.dinner);
+    el.innerHTML=progressCard+moodCard+projReminder+buildFactsHtml(fb,ch.gr,cs);
     if(apiKey) loadAndRender(ch.gr,el,progressCard,moodCard,projReminder,cs);
   }
 }
@@ -357,7 +357,7 @@ async function loadAndRender(gr,el,p1,p2,p3,cs){
   if(!apiKey){
     var fb=FALLBACK[gr]||FALLBACK['j'];
     if(document.getElementById('cc')===el||el.id==='cc')
-      el.innerHTML=p1+p2+p3+buildFactsHtml(fb,gr,cs)+buildDinnerHtml(fb.dinner)
+      el.innerHTML=p1+p2+p3+buildFactsHtml(fb,gr,cs)
         +'<div class="card" style="border-color:#f0997b"><div class="ch" style="color:#D85A30"><i class="ti ti-key"></i>API-ключ не настроен</div><p style="font-size:13px;color:var(--t2);margin-bottom:10px">Добавь ключ в панели папы.</p></div>';
     return;
   }
@@ -377,10 +377,10 @@ async function loadAndRender(gr,el,p1,p2,p3,cs){
   var newP2='<div class="card"><div class="ch"><i class="ti ti-mood-smile"></i>Настроение сегодня</div><div class="mrow">'+mh+'</div></div>';
   if(data){
     if(data.weekProject)storeWeekProject(data.weekProject,gr);
-    currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(data,gr,newCs)+buildWordHtml(data.word)+buildQuizHtml(data.quiz,newCs)+buildDinnerHtml(data.dinner);
+    currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(data,gr,newCs)+buildWordHtml(data.word)+buildQuizHtml(data.quiz,newCs);
   } else {
     var fb=FALLBACK[gr];
-    currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(fb,gr,newCs)+buildDinnerHtml(fb.dinner)
+    currentEl.innerHTML=newP1+newP2+p3+buildFactsHtml(fb,gr,newCs)
       +'<div class="card"><div style="font-size:12px;color:var(--t3)">⚠️ Нет интернета — резервный контент</div></div>';
   }
 }
@@ -416,9 +416,10 @@ async function callApi(gr){
     +'1. Факты — из РАЗНЫХ стран мира, не только Казахстан. 1 факт может быть о КЗ, 2 других — о мире.\n'
     +'2. Мнение дня — простой жизненный вопрос. БЕЗ слов: лагерь, лето, каникулы.\n'
     +'3. Вопрос за ужином — философский или познавательный вопрос для семьи. НЕ про еду и НЕ про меню.\n'
-    +'4. '+questGuide+'\n'
+    +'4. '+questGuide+' Квест выполняется за 1-2 часа СЕГОДНЯ. Строго один день, никаких заданий растянутых на несколько дней.\n'
     +'5. В квесте steps — минимум 5 подробных шагов КАК делать.\n'
     +'6. '+projGuide+'\n'
+    +(isM?'11. Семейный квест (familyQuest) — задание которое вся семья выполняет вместе вечером за 20-40 минут. Связано с темой недели. Весело и познавательно.\n':'')
     +'7. В проекте days — КАЖДЫЙ ДЕНЬ должен содержать: что делать + пошаговую инструкцию КАК (например не "посади семена", а "Возьми стакан, насыпь 2 см земли, сделай ямку пальцем 1 см, положи 2-3 семечка, засыпь, полей 3 ложки воды").\n'    +'8. Викторина — 2 вопроса строго по тексту фактов дня (ответ есть в фактах) + 1 вопрос на размышление по теме дня. 3 варианта ответа, один правильный.\n'    +'9. Слово дня — одно интересное слово связанное с темой. Для детей 8-10 лет: простое но необычное. Для подростка 15 лет: из науки, экономики или философии. Объяснение простыми словами + яркая аналогия.\n'    +'10. Вопрос для дневника — один вопрос который побудит ребёнка написать о своём дне. Связан с темой недели. Для детей 8-10 лет: простой и конкретный. Для подростка 15 лет: на размышление и самоанализ.\n\n'
     +'Только валидный JSON без markdown:\n'
     +'{"facts":[{"type":"fin","tag":"Финансы","text":"..."},{"type":"phy","tag":"Физика","text":"..."},{"type":"nat","tag":"Природа","text":"..."}],'
@@ -426,6 +427,7 @@ async function callApi(gr){
     +'"quest":{"title":"...","desc":"Зачем это круто (2-3 предл)","steps":["Шаг 1 подробно","Шаг 2","Шаг 3","Шаг 4","Шаг 5"],"pts":'+questPts+',"crit":"Что должно получиться"},'
     +'"weekProject":{"title":"...","desc":"...","mats":["...","...","..."],"days":["День 1: действие + детальная инструкция КАК","День 2: действие + инструкция","День 3: действие + инструкция","День 4: действие + инструкция","День 5: действие + инструкция","День 6: действие + инструкция","День 7: финальное действие + что должно получиться"],"pts":'+projPts+'},'
     +'"dinner":"Открытый вопрос для семейного обсуждения (не про еду)",' +'"quiz":[{"q":"Вопрос 1?","opts":["А","Б","В"],"ans":0},{"q":"Вопрос 2?","opts":["А","Б","В"],"ans":1},{"q":"Вопрос 3 на размышление?","opts":["А","Б","В"],"ans":2}],' +'"word":{"w":"Слово","def":"Объяснение простыми словами","ex":"Яркая аналогия или пример из жизни"},'
+    +(isM?'"familyQuest":{"title":"...","desc":"Что делать всей семьёй вместе (2-3 предл)","steps":["Шаг 1","Шаг 2","Шаг 3"],"pts":200},':'')
     +'"diaryPrompt":"Вопрос для дневника?"}';
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
@@ -578,12 +580,25 @@ function buildQuestsHtml(data,gr,cs){
     +'<ol class="slist">'+q.steps.map(function(s){return '<li>'+s+'</li>';}).join('')+'</ol>'
     +'<div class="crit">📸 Сделай фото — папа проверит и начислит очки</div>'
     +questBtn(cs,'qt',q.pts,'Сделал! Отправить фото','camera')+'</div>';
-  h+='<div class="slbl">Семейный квест</div>';
-  h+='<div class="qcard"><div class="qtr"><div class="qn">🇰🇿 Викторина о Казахстане</div><div class="qp">+200 очков</div></div>'
-    +'<div class="qd">Собирайтесь все вместе! Каждый придумывает 2 вопроса о Казахстане.</div>'
-    +'<ol class="slist"><li>Каждый придумывает 2 вопроса</li><li>Задаёте по очереди</li><li>Победитель выбирает фильм</li><li>Все получают очки!</li></ol>'
-    +'<div class="crit">📸 Сделайте общее фото</div>'
-    +questBtn(cs,'fq',200,'Сделали! Отправить фото','users')+'</div>';
+  // Family quest from group m digest
+  var fqData=digestCache['m'];
+  var fq=fqData&&fqData.familyQuest?fqData.familyQuest:null;
+  h+='<div class="slbl">Семейный квест — вечером вместе</div>';
+  if(fq){
+    h+='<div class="qcard"><div class="qtr"><div class="qn">👨‍👩‍👧‍👦 '+fq.title+'</div><div class="qp">+'+fq.pts+' очков</div></div>'
+      +'<div class="qd">'+fq.desc+'</div>'
+      +'<ol class="slist">'+fq.steps.map(function(s){return '<li>'+s+'</li>';}).join('')+'</ol>'
+      +'<div class="crit">📸 Сделайте общее фото</div>'
+      +questBtn(cs,'fq',fq.pts,'Сделали! Отправить фото','users')+'</div>';
+  } else {
+    h+='<div class="qcard"><div class="qd" style="color:var(--t2);font-size:13px">⏳ Загружается семейный квест...</div></div>';
+  }
+  // Dinner question
+  var dinner=data&&data.dinner?data.dinner:(fqData&&fqData.dinner?fqData.dinner:null);
+  if(dinner){
+    h+='<div class="slbl">Вопрос за ужином</div>';
+    h+=buildDinnerHtml(dinner);
+  }
   return h;
 }
 
