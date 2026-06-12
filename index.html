@@ -195,7 +195,7 @@ var lastDay=Math.floor(Date.now()/86400000);
 
 // Pre-populate with defaults so UI renders immediately
 CHILDREN.forEach(function(c){
-  childData[c.id]={pts:0,wpts:0,done:[],mood:null,diary:[],goal:null,vote:null,vday:-1,weekProject:null};
+  childData[c.id]={pts:0,wpts:0,done:{},mood:null,diary:[],goal:null,vote:null,vday:-1,weekProject:null};
 });
 
 // ── FIREBASE HELPERS ──
@@ -214,7 +214,7 @@ async function saveApiKey(key){
 function subscribeChild(id){
   var unsub=onSnapshot(doc(db,'children',id),function(snap){
     if(snap.exists())childData[id]=snap.data();
-    else childData[id]={pts:0,wpts:0,done:[],mood:null,diary:[],goal:null,vote:null,vday:-1,weekProject:null};
+    else childData[id]={pts:0,wpts:0,done:{},mood:null,diary:[],goal:null,vote:null,vday:-1,weekProject:null};
     if(curChild===id)renderContent();
     renderStrip();
   });
@@ -258,7 +258,7 @@ async function addPoints(childId,pts){
   await updateDoc(doc(db,'children',childId),{pts:increment(pts),wpts:increment(pts)});
 }
 
-function getCS(){return childData[curChild]||{pts:0,wpts:0,done:[],mood:null,diary:[],goal:null,vote:null,vday:-1};}
+function getCS(){return childData[curChild]||{pts:0,wpts:0,done:{},mood:null,diary:[],goal:null,vote:null,vday:-1};}
 function getCH(){return CHILDREN.find(function(c){return c.id===curChild;});}
 
 // ── PIN ──
@@ -942,7 +942,7 @@ window.confPay=async function(){
     var inp=document.getElementById('bn-'+c.id);
     var b=inp?parseInt(inp.value||0)||0:0;
     rows.push({av:c.av,name:c.name,total:base+b});
-    await updateChild(c.id,{wpts:0,done:[]});
+    await updateChild(c.id,{wpts:0,done:{}});
   }
   var hist=[];
   try{var h=localStorage.getItem('payHistory');if(h)hist=JSON.parse(h);}catch(e){}
