@@ -133,7 +133,10 @@ html,body{height:100%;width:100%;background:var(--s);font-family:-apple-system,B
 <div id="sc" class="screen">
   <div class="hdr">
     <div><div class="hdr-t">🏕️ Семейный лагерь</div><div class="hdr-s" id="hdate"></div></div>
-    <button class="hdr-btn" id="btn-parent"><i class="ti ti-shield-lock" style="font-size:14px"></i> Папе</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="hdr-btn" id="btn-profile-hdr" style="background:var(--s);color:var(--t2);border:1.5px solid var(--b)"><i class="ti ti-medal" style="font-size:14px"></i> Профиль</button>
+      <button class="hdr-btn" id="btn-parent"><i class="ti ti-shield-lock" style="font-size:14px"></i> Папе</button>
+    </div>
   </div>
   <div class="cstrip" id="cstrip"></div>
   <div class="sc" id="cc"></div>
@@ -141,8 +144,8 @@ html,body{height:100%;width:100%;background:var(--s);font-family:-apple-system,B
     <button class="nb on" id="nb0" data-tab="today"><i class="ti ti-sun"></i>Сегодня</button>
     <button class="nb" id="nb1" data-tab="quests"><i class="ti ti-sword"></i>Квест</button>
     <button class="nb" id="nb2" data-tab="project"><i class="ti ti-plant"></i>Проект</button>
-    <button class="nb" id="nb3" data-tab="diary"><i class="ti ti-notebook"></i>Дневник</button>
-    <button class="nb" id="nb4" data-tab="profile"><i class="ti ti-medal"></i>Профиль</button>
+    <button class="nb" id="nb3" data-tab="chores"><i class="ti ti-home"></i>Работа</button>
+    <button class="nb" id="nb4" data-tab="diary"><i class="ti ti-notebook"></i>Дневник</button>
   </nav>
 </div>
 </div>
@@ -165,9 +168,9 @@ const db=getFirestore(app);
 // ── CONSTANTS ──
 const PIN='1234'; // ← СМЕНИ НА СВОЙ
 const CHILDREN=[
-  {id:'bakhyt', name:'Бахытжан',age:8, av:'🐆',gr:'j',maxW:3000, maxP:4000},
-  {id:'zhasmin',name:'Жасмин',  age:9, av:'🦅',gr:'j',maxW:3000, maxP:4000},
-  {id:'alikhan',name:'Алихан',  age:11,av:'🦌',gr:'m',maxW:4000,maxP:6000},
+  {id:'bakhyt', name:'Бахытжан',age:8, av:'🐻',gr:'j',maxW:3000, maxP:4000},
+  {id:'zhasmin',name:'Жасмин',  age:9, av:'🐦',gr:'j',maxW:3000, maxP:4000},
+  {id:'alikhan',name:'Алихан',  age:11,av:'🦁',gr:'m',maxW:4000,maxP:6000},
   {id:'aslan',  name:'Аслан',   age:15,av:'🐺',gr:'s',maxW:5000,maxP:8000}
 ];
 const DAYS=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
@@ -304,6 +307,7 @@ function renderContent(){
     else if(curTab==='quests')renderQuests(el);
     else if(curTab==='project')el.innerHTML=renderProject();
     else if(curTab==='diary')el.innerHTML=renderDiary();
+    else if(curTab==='chores')el.innerHTML=renderChores();
     else if(curTab==='profile')el.innerHTML=renderProfile();
   }catch(err){
     console.error('renderContent error:',err);
@@ -317,7 +321,7 @@ function renderContent(){
 function renderToday(el){
   var ch=getCH(),cs=getCS();
   var pct=Math.min(100,Math.round((cs.wpts||0)/ch.maxW*100));
-  var earn=pct>=30?Math.round((cs.wpts||0)/ch.maxW*ch.maxP):0;
+  var earn=Math.round((cs.wpts||0)/ch.maxW*ch.maxP);
   var moods=[{e:'😴',l:'Устал'},{e:'😊',l:'Хорошо'},{e:'🔥',l:'Огонь!'},{e:'😔',l:'Грустно'},{e:'🤔',l:'Думаю'}];
   var mh=moods.map(function(m,i){return '<button class="mb'+(cs.mood===i?' on':'')+'" data-mood="'+i+'"><span class="me">'+m.e+'</span><span class="ml">'+m.l+'</span></button>';}).join('');
 
@@ -366,7 +370,7 @@ async function loadAndRender(gr,el,p1,p2,p3,cs){
   if(!currentEl)return;
   var ch=getCH(),newCs=getCS();
   var pct=Math.min(100,Math.round((newCs.wpts||0)/ch.maxW*100));
-  var earn=pct>=30?Math.round((newCs.wpts||0)/ch.maxW*ch.maxP):0;
+  var earn=Math.round((newCs.wpts||0)/ch.maxW*ch.maxP);
   var moods=[{e:'😴',l:'Устал'},{e:'😊',l:'Хорошо'},{e:'🔥',l:'Огонь!'},{e:'😔',l:'Грустно'},{e:'🤔',l:'Думаю'}];
   var mh=moods.map(function(m,i){return '<button class="mb'+(newCs.mood===i?' on':'')+'" data-mood="'+i+'"><span class="me">'+m.e+'</span><span class="ml">'+m.l+'</span></button>';}).join('');
   var newP1='<div class="card"><div class="ch"><i class="ti ti-chart-bar"></i>Прогресс недели<span class="sync-dot" style="margin-left:auto"></span></div>'
@@ -803,6 +807,45 @@ window.saveDiary=async function(){
 };
 
 // ── PROFILE ──
+
+// ── CHORES ──
+// Days: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+var CHORES=[
+  {id:'ch_room',  title:'Уборка в комнате',     desc:'Порядок в шкафу с одеждой, на столах и полу.',    pts:50,  groups:['j','m','s'], days:[0,1,2,3,4,5,6]},
+  {id:'ch_gen',   title:'Генеральная уборка',    desc:'Помыть пол, пропылесосить, вытереть пыль.',        pts:150, groups:['j','m','s'], days:[2,5]},
+  {id:'ch_dust',  title:'Вытереть пыль',         desc:'Вытереть пыль на всех поверхностях в доме.',      pts:50,  groups:['j','m'],     days:[1,3,6]},
+  {id:'ch_water', title:'Полить деревья',         desc:'Полить все деревья и растения во дворе.',         pts:50,  groups:['m','s'],     days:[1,3,5]},
+  {id:'ch_lawn',  title:'Подстричь газон',        desc:'Подстричь газон вокруг дома.',                    pts:150, groups:['s'],         days:[5]},
+];
+
+function getTodayChores(gr){
+  var dow=new Date().getDay();
+  return CHORES.filter(function(c){
+    return c.groups.indexOf(gr)>=0 && c.days.indexOf(dow)>=0;
+  });
+}
+
+function renderChores(){
+  var cs=getCS();
+  var ch=getCH();
+  var chores=getTodayChores(ch.gr);
+  if(chores.length===0){
+    return '<div class="card" style="text-align:center;padding:32px 16px">'
+      +'<div style="font-size:32px;margin-bottom:8px">🎉</div>'
+      +'<div style="font-size:15px;font-weight:600;color:var(--t)">Сегодня выходной!</div>'
+      +'<div style="font-size:13px;color:var(--t2);margin-top:4px">Домашних дел нет. Отдыхай!</div>'
+      +'</div>';
+  }
+  var h='<div class="slbl">Работа по дому — сегодня</div>';
+  chores.forEach(function(c){
+    h+='<div class="qcard"><div class="qtr"><div class="qn">'+c.title+'</div><div class="qp">+'+c.pts+' очков</div></div>'
+      +'<div class="qd">'+c.desc+'</div>'
+      +'<div class="crit">📸 Сделай фото — папа проверит и начислит очки</div>'
+      +questBtn(cs,c.id,c.pts,'Готово! Отправить фото','camera')+'</div>';
+  });
+  return h;
+}
+
 function renderProfile(){
   var ch=getCH(),cs=getCS();
   var pts=cs.pts||0;
@@ -810,7 +853,7 @@ function renderProfile(){
   var cur=LEVELS[lv].m,nxt=LEVELS[lv+1]?LEVELS[lv+1].m:cur+2000;
   var lp=Math.min(100,Math.round((pts-cur)/(nxt-cur)*100));
   var wpts=cs.wpts||0,wp2=Math.min(1,wpts/ch.maxW);
-  var earn=wp2>=0.3?Math.round(wp2*ch.maxP):0;
+  var earn=Math.round(wp2*ch.maxP);
   var ah=ACHS.map(function(a){return '<div class="ac"><span class="ai">'+a.ico+'</span><div class="an">'+a.n+'</div></div>';}).join('');
   var gpart=cs.goal
     ?'<div style="font-size:14px;padding:8px 12px;border-left:3px solid var(--g);background:var(--gl);border-radius:0 var(--rs) var(--rs) 0;line-height:1.5">'+cs.goal+'</div>'
@@ -840,7 +883,7 @@ function renderParent(){
     revHtml+='<div style="padding:12px 0;border-bottom:1px solid var(--b)">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
       +'<span style="font-size:22px">'+item.childAv+'</span>'
-      +'<div><div style="font-size:14px;font-weight:600;color:var(--t)">'+item.childName+' — '+({qt:'Быстрый квест',wp:'Большой проект',fq:'Семейный квест'}[item.qid]||item.qid)+'</div>'
+      +'<div><div style="font-size:14px;font-weight:600;color:var(--t)">'+item.childName+' — '+({qt:'Быстрый квест',wp:'Большой проект',fq:'Семейный квест',ch_room:'Уборка комнаты',ch_gen:'Генеральная уборка',ch_dust:'Вытереть пыль',ch_water:'Полить деревья',ch_lawn:'Подстричь газон'}[item.qid]||item.qid)+'</div>'
       +'<div style="font-size:11px;color:var(--t3)">'+item.date+' · +'+item.pts+' очков</div></div></div>'
       +(item.photoUrl?'<img src="'+item.photoUrl+'" class="review-img">':'')
       +'<div style="display:flex;gap:8px">'
@@ -857,7 +900,7 @@ function renderParent(){
   var childRows=CHILDREN.map(function(c){
     var cs=childData[c.id]||{};
     var pct=Math.min(100,Math.round((cs.wpts||0)/c.maxW*100));
-    var base=pct>=30?Math.round((cs.wpts||0)/c.maxW*c.maxP):0;
+    var base=Math.round((cs.wpts||0)/c.maxW*c.maxP);
     var m=cs.mood!=null?moods[cs.mood]:'—';
     return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--b)">'
       +'<span style="font-size:26px">'+c.av+'</span>'
@@ -871,7 +914,7 @@ function renderParent(){
   var payRows=CHILDREN.map(function(c){
     var cs=childData[c.id]||{};
     var pct=Math.min(1,(cs.wpts||0)/c.maxW);
-    var base=pct>=0.3?Math.round(pct*c.maxP):0;
+    var base=Math.round(pct*c.maxP);
     totalPay+=base;
     return '<div style="padding:10px 0;border-bottom:1px solid var(--b)">'
       +'<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:14px;font-weight:600">'+c.av+' '+c.name+'</div>'
@@ -907,7 +950,7 @@ window.recalc=function(){
   CHILDREN.forEach(function(c){
     var cs=childData[c.id]||{};
     var pct=Math.min(1,(cs.wpts||0)/c.maxW);
-    var base=pct>=0.3?Math.round(pct*c.maxP):0;
+    var base=Math.round(pct*c.maxP);
     var inp=document.getElementById('bn-'+c.id);
     tot+=base+(inp?parseInt(inp.value||0)||0:0);
   });
@@ -938,7 +981,7 @@ window.confPay=async function(){
     var c=CHILDREN[i];
     var cs=childData[c.id]||{};
     var pct=Math.min(1,(cs.wpts||0)/c.maxW);
-    var base=pct>=0.3?Math.round(pct*c.maxP):0;
+    var base=Math.round(pct*c.maxP);
     var inp=document.getElementById('bn-'+c.id);
     var b=inp?parseInt(inp.value||0)||0:0;
     rows.push({av:c.av,name:c.name,total:base+b});
@@ -1008,6 +1051,7 @@ function setupEvents(){
 
     // parent button
     if(t.closest('#btn-parent')){opov();return;}
+    if(t.closest('#btn-profile-hdr')){stab('profile',null);return;}
 
     // back button
     if(t.closest('#btn-back')){bk();return;}
