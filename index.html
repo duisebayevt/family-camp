@@ -391,14 +391,14 @@ async function loadAndRender(gr,el,p1,p2,p3,cs){
 
 // ── DIGEST / API ──
 function gday(){return Math.floor(Date.now()/86400000)}
-function getWeekNum(){return Math.floor((Date.now()-new Date('2026-06-09').getTime())/(7*86400000))}
+function getWeekNum(){return Math.floor((Date.now()-new Date('2026-06-08').getTime())/(7*86400000))}
 
 async function callApi(gr){
   if(!apiKey)return null;
   var wn=getWeekNum();
   var theme=WEEK_THEMES[Math.min(wn,WEEK_THEMES.length-1)];
   var now=new Date();
-  var dayNum=Math.floor((Date.now()-new Date('2026-06-09').getTime())/86400000)+1;
+  var dayNum=Math.floor((Date.now()-new Date('2026-06-08').getTime())/86400000)+1;
   var isJ=(gr==='j');
   var isM=(gr==='m');
   var questGuide=isJ
