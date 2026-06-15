@@ -975,7 +975,7 @@ function renderParent(){
     +'<div class="card"><div class="ch"><i class="ti ti-plant"></i>Проект недели</div>'
     +'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Генерируется в понедельник автоматически. Или запусти вручную прямо сейчас для всех детей.</div>'
     +'<button class="btn bg" id="btn-gen-project-parent"><i class="ti ti-sparkles"></i>Сгенерировать проект сейчас</button></div>'
-    +'<div class="card"><div class="ch"><i class="ti ti-refresh"></i>Контент дня</div>'    +'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Обнови факты дня, викторину и слово дня для всех детей прямо сейчас.</div>'    +'<button class="btn bg" id="btn-refresh-content"><i class="ti ti-refresh"></i>Обновить контент</button></div>'    +'<div class="card"><div class="ch"><i class="ti ti-history"></i>История выплат</div>'+histHtml+'</div>';
+    +'<div class="card"><div class="ch"><i class="ti ti-refresh"></i>Контент дня</div>'+'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Обнови факты дня, викторину и слово дня для каждой группы отдельно.</div>'+'<button class="btn bg" id="btn-refresh-j" style="margin-bottom:8px"><i class="ti ti-refresh"></i>Обновить младших (Бахыт, Жасмин)</button>'+'<button class="btn bg" id="btn-refresh-m" style="margin-bottom:8px;background:var(--al);color:var(--am)"><i class="ti ti-refresh"></i>Обновить Алихана</button>'+'<button class="btn bg" id="btn-refresh-s" style="background:#667eea;color:#fff"><i class="ti ti-refresh"></i>Обновить Аслана</button></div>'    +'<div class="card"><div class="ch"><i class="ti ti-history"></i>История выплат</div>'+histHtml+'</div>';
 }
 
 window.recalc=function(){
@@ -1150,22 +1150,22 @@ function setupEvents(){
       return;
     }
     // refresh content
-    if(t.closest('#btn-refresh-content')){
-      var rbtn=t.closest('#btn-refresh-content');
+    // refresh content per group
+    var refreshGr=null;
+    if(t.closest('#btn-refresh-j'))refreshGr='j';
+    else if(t.closest('#btn-refresh-m'))refreshGr='m';
+    else if(t.closest('#btn-refresh-s'))refreshGr='s';
+    if(refreshGr){
+      var rbtn=t.closest('#btn-refresh-'+refreshGr);
       rbtn.disabled=true;rbtn.innerHTML='<div class="spin" style="width:20px;height:20px;border-width:2px;margin:0 auto"></div>';
-      digestCache={j:null,m:null,s:null};
-      try{localStorage.removeItem('dig_j_'+gday());localStorage.removeItem('dig_m_'+gday());localStorage.removeItem('dig_s_'+gday());}catch(e){}
+      var grName=refreshGr==='j'?'младших':refreshGr==='m'?'Алихана':'Аслана';
+      digestCache[refreshGr]=null;
+      try{localStorage.removeItem('dig_'+refreshGr+'_'+gday());}catch(e){}
       (async function(){
-        toast('Обновляю контент для младших...');
-        var dj=await callApi('j');
-        if(dj){dj.day=gday();digestCache.j=dj;try{localStorage.setItem('dig_j_'+gday(),JSON.stringify(dj));}catch(e){}try{await setDoc(doc(db,'config','digest_j'),dj);}catch(e){}}
-        toast('Обновляю контент для Алихана...');
-        var dm=await callApi('m');
-        if(dm){dm.day=gday();digestCache.m=dm;try{localStorage.setItem('dig_m_'+gday(),JSON.stringify(dm));}catch(e){}try{await setDoc(doc(db,'config','digest_m'),dm);}catch(e){}}
-        toast('Обновляю контент для Аслана...');
-        var ds=await callApi('s');
-        if(ds){ds.day=gday();digestCache.s=ds;try{localStorage.setItem('dig_s_'+gday(),JSON.stringify(ds));}catch(e){}try{await setDoc(doc(db,'config','digest_s'),ds);}catch(e){}}
-        if(dj||ds){toast('Контент обновлён для всех! ✓');}
+        toast('Обновляю контент для '+grName+'...');
+        var d=await callApi(refreshGr);
+        if(d){d.day=gday();digestCache[refreshGr]=d;try{localStorage.setItem('dig_'+refreshGr+'_'+gday(),JSON.stringify(d));}catch(e){}try{await setDoc(doc(db,'config','digest_'+refreshGr),d);}catch(e){}}
+        if(d){toast('Контент обновлён для '+grName+'! ✓');}
         else{toast('Ошибка — проверь API-ключ');}
         renderParent();
       })();
