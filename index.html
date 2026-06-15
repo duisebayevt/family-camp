@@ -841,6 +841,163 @@ window.saveDiary=async function(){
 
 // ── PROFILE ──
 
+
+// ── BOOKS ──
+var BOOKS_J=[
+  {id:'b1',title:'Маленький принц',author:'Антуан де Сент-Экзюпери'},
+  {id:'b2',title:'Муми-тролль и другие истории',author:'Туве Янссон'},
+  {id:'b3',title:'Денискины рассказы',author:'Виктор Драгунский'},
+  {id:'b4',title:'Приключения Незнайки',author:'Николай Носов'},
+  {id:'b5',title:'Дорогой Эван Хансен',author:'Валь Ларсен'},
+  {id:'b6',title:'Волшебник Изумрудного города',author:'Александр Волков'},
+  {id:'b7',title:'Мио, мой Мио',author:'Астрид Линдгрен'},
+  {id:'b8',title:'Чарли и шоколадная фабрика',author:'Роальд Даль'},
+  {id:'b9',title:'Путешествия Гулливера',author:'Джонатан Свифт'},
+  {id:'b10',title:'Таинственный остров',author:'Жюль Верн'},
+];
+var BOOKS_M=[
+  {id:'b1',title:'Алхимик',author:'Пауло Коэльо'},
+  {id:'b2',title:'Гарри Поттер и философский камень',author:'Дж. К. Роулинг'},
+  {id:'b3',title:'Маугли',author:'Редьярд Киплинг'},
+  {id:'b4',title:'Дети капитана Гранта',author:'Жюль Верн'},
+  {id:'b5',title:'Три мушкетёра',author:'Александр Дюма'},
+  {id:'b6',title:'Робинзон Крузо',author:'Даниэль Дефо'},
+  {id:'b7',title:'Том Сойер',author:'Марк Твен'},
+  {id:'b8',title:'Вокруг света за 80 дней',author:'Жюль Верн'},
+  {id:'b9',title:'Граф Монте-Кристо',author:'Александр Дюма'},
+  {id:'b10',title:'Двадцать тысяч лье под водой',author:'Жюль Верн'},
+];
+var BOOKS_S=[
+  {id:'b1',title:'Думай медленно, решай быстро',author:'Даниэль Канеман'},
+  {id:'b2',title:'7 навыков высокоэффективных людей',author:'Стивен Кови'},
+  {id:'b3',title:'Богатый папа, бедный папа',author:'Роберт Кийосаки'},
+  {id:'b4',title:'Атомные привычки',author:'Джеймс Клир'},
+  {id:'b5',title:'Как завоёвывать друзей',author:'Дейл Карнеги'},
+  {id:'b6',title:'Мастер и Маргарита',author:'Михаил Булгаков'},
+  {id:'b7',title:'1984',author:'Джордж Оруэлл'},
+  {id:'b8',title:'Маленький принц',author:'Антуан де Сент-Экзюпери'},
+  {id:'b9',title:'Преступление и наказание',author:'Фёдор Достоевский'},
+  {id:'b10',title:'Три товарища',author:'Эрих Мария Ремарк'},
+];
+
+var extraBooks={};// папа может добавить книги: {id, title, author, gr}
+
+function getBooksForGr(gr){
+  var base=gr==='j'?BOOKS_J:gr==='m'?BOOKS_M:BOOKS_S;
+  var extra=(extraBooks[gr]||[]);
+  return base.concat(extra);
+}
+
+var activeBookTest=null; // {bookId, title, questions:[{q,opts,ans}], answers:[]}
+
+async function generateBookTest(book){
+  if(!apiKey){toast('Нужен API-ключ');return;}
+  toast('Генерирую тест по книге...');
+  var prompt='Ты составляешь тест для ребёнка по книге «'+book.title+'» ('+book.author+'). '
+    +'Составь ровно 20 вопросов с вариантами ответов A, B, C, D. '
+    +'Вопросы должны проверять понимание сюжета, персонажей и идей книги. '
+    +'Отвечай ТОЛЬКО валидным JSON без markdown, без пояснений:\n'
+    +'{"questions":[{"q":"Вопрос?","opts":["A. ...","B. ...","C. ...","D. ..."],"ans":0},...]}'
+    +'\nans — индекс правильного ответа (0-3). Ровно 20 вопросов.';
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4000,messages:[{role:'user',content:prompt}]})
+    });
+    var data=await resp.json();
+    var txt=data.content.map(function(i){return i.text||'';}).join('');
+    var clean=txt.replace(/```json|```/g,'').trim();
+    var parsed=JSON.parse(clean);
+    if(parsed.questions&&parsed.questions.length===20){
+      activeBookTest={bookId:book.id,title:book.title,questions:parsed.questions,answers:new Array(20).fill(null)};
+      renderContent();
+      toast('Тест готов! Ответь на 20 вопросов');
+    }else{toast('Ошибка генерации теста — попробуй снова');}
+  }catch(e){toast('Ошибка: '+e.message);}
+}
+
+function renderBookTest(){
+  var test=activeBookTest;
+  var h='<div class="slbl">📖 Тест: «'+test.title+'»</div>';
+  var answered=test.answers.filter(function(a){return a!==null;}).length;
+  h+='<div style="font-size:12px;color:var(--t2);margin-bottom:12px">Отвечено: '+answered+'/20</div>';
+  test.questions.forEach(function(q,qi){
+    h+='<div class="qcard" style="margin-bottom:8px">';
+    h+='<div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:8px;line-height:1.4">'+(qi+1)+'. '+q.q+'</div>';
+    q.opts.forEach(function(opt,oi){
+      var sel=test.answers[qi]===oi;
+      h+='<button class="qz-opt" data-bq="'+qi+'" data-bo="'+oi+'" style="'+(sel?'border-color:var(--p);background:var(--s2);font-weight:600':'')+'">'+opt+'</button>';
+    });
+    h+='</div>';
+  });
+  var allAnswered=test.answers.every(function(a){return a!==null;});
+  h+='<button class="btn bg" id="btn-submit-book-test" '+(allAnswered?'':'disabled style="opacity:0.5"')+'>Отправить тест папе</button>';
+  h+='<button class="btn bo" style="margin-top:8px" id="btn-cancel-book-test">Отмена</button>';
+  return h;
+}
+
+function renderBookSection(cs,gr){
+  var books=getBooksForGr(gr);
+  var done=(!cs.done||Array.isArray(cs.done))?{}:(cs.done||{});
+  var h='<div class="slbl">📚 Прочитать книгу</div>';
+  h+='<div style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5">Прочитай книгу и пройди тест из 20 вопросов. За каждую книгу — 10 000 тг к выплате!</div>';
+  books.forEach(function(b){
+    var st=done['book_'+b.id];
+    var pend=pendingReviews.some(function(p){return p.childId===curChild&&p.qid==='book_'+b.id&&p.status==='pending';});
+    var approved=pendingReviews.some(function(p){return p.childId===curChild&&p.qid==='book_'+b.id&&p.status==='approved';});
+    h+='<div class="qcard" style="margin-bottom:8px">';
+    h+='<div class="qtr"><div><div class="qn" style="font-size:14px">'+b.title+'</div><div style="font-size:12px;color:var(--t2)">'+b.author+'</div></div>';
+    if(approved){
+      h+='<div style="color:var(--g);font-weight:700;font-size:12px">✅ Засчитано</div>';
+    } else if(pend){
+      h+='<div style="color:#EF9F27;font-weight:600;font-size:12px">⏳ На проверке</div>';
+    } else {
+      h+='<button class="btn bg" style="padding:6px 12px;font-size:12px" data-book-id="'+b.id+'" data-book-title="'+b.title+'" data-book-author="'+b.author+'">Я прочитал</button>';
+    }
+    h+='</div></div>';
+  });
+  return h;
+}
+
+window.submitBookTest=async function(){
+  var test=activeBookTest;
+  if(!test)return;
+  var score=test.questions.filter(function(q,i){return test.answers[i]===q.ans;}).length;
+  var pendId=curChild+'_book_'+test.bookId+'_'+Date.now();
+  var ch=getCH();
+  await setDoc(doc(db,'pending',pendId),{
+    childId:curChild,childName:ch.name,childAv:ch.av,
+    qid:'book_'+test.bookId,pts:0,
+    bookTitle:test.title,
+    score:score,
+    total:20,
+    questions:test.questions,
+    answers:test.answers,
+    date:new Date().toLocaleDateString('ru'),
+    status:'pending',
+    type:'book',
+    createdAt:serverTimestamp()
+  });
+  activeBookTest=null;
+  renderContent();
+  toast('Тест отправлен папе! Результат: '+score+'/20 ⏳');
+};
+
+window.approveBook=async function(pendId,childId,score){
+  await updateDoc(doc(db,'pending',pendId),{status:'approved'});
+  var cs=childData[childId]||{};
+  var bookPay=(cs.bookPay||0)+10000;
+  await updateChild(childId,{bookPay:bookPay});
+  var name=CHILDREN.find(function(c){return c.id===childId;}).name;
+  toast(name+' — книга засчитана! +10 000 тг 📚');
+};
+
+window.rejectBook=async function(pendId){
+  await updateDoc(doc(db,'pending',pendId),{status:'rejected'});
+  toast('Тест не засчитан — ребёнок может попробовать снова');
+};
+
 // ── CHORES ──
 // Days: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
 var CHORES=[
@@ -861,21 +1018,28 @@ function getTodayChores(gr){
 function renderChores(){
   var cs=getCS();
   var ch=getCH();
+  // If book test is active - show test
+  if(activeBookTest){
+    return renderBookTest();
+  }
   var chores=getTodayChores(ch.gr);
+  var h='';
   if(chores.length===0){
-    return '<div class="card" style="text-align:center;padding:32px 16px">'
+    h+='<div class="card" style="text-align:center;padding:24px 16px">'
       +'<div style="font-size:32px;margin-bottom:8px">🎉</div>'
       +'<div style="font-size:15px;font-weight:600;color:var(--t)">Сегодня выходной!</div>'
       +'<div style="font-size:13px;color:var(--t2);margin-top:4px">Домашних дел нет. Отдыхай!</div>'
       +'</div>';
+  } else {
+    h+='<div class="slbl">Работа по дому — сегодня</div>';
+    chores.forEach(function(c){
+      h+='<div class="qcard"><div class="qtr"><div class="qn">'+c.title+'</div><div class="qp">+'+c.pts+' очков</div></div>'
+        +'<div class="qd">'+c.desc+'</div>'
+        +'<div class="crit">📸 Сделай фото — папа проверит и начислит очки</div>'
+        +questBtn(cs,c.id,c.pts,'Готово! Отправить фото','camera')+'</div>';
+    });
   }
-  var h='<div class="slbl">Работа по дому — сегодня</div>';
-  chores.forEach(function(c){
-    h+='<div class="qcard"><div class="qtr"><div class="qn">'+c.title+'</div><div class="qp">+'+c.pts+' очков</div></div>'
-      +'<div class="qd">'+c.desc+'</div>'
-      +'<div class="crit">📸 Сделай фото — папа проверит и начислит очки</div>'
-      +questBtn(cs,c.id,c.pts,'Готово! Отправить фото','camera')+'</div>';
-  });
+  h+=renderBookSection(cs,ch.gr);
   return h;
 }
 
@@ -912,7 +1076,33 @@ function renderParent(){
 
   // REVIEWS
   var revHtml='';
-  pendingReviews.filter(function(p){return p.status==='pending';}).forEach(function(item){
+  pendingReviews.filter(function(p){return p.status==='pending'&&p.type==='book';}).forEach(function(item){
+    var score=item.score||0;
+    var pass=score>=15;
+    revHtml+='<div class="rev-item" style="border-left:3px solid '+(pass?'var(--g)':'var(--r)')+';">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div><div style="font-size:13px;font-weight:700">'+item.childAv+' '+item.childName+' — 📚 '+item.bookTitle+'</div>'
+      +'<div style="font-size:12px;color:'+(pass?'var(--g)':'var(--r)')+'">Результат: '+score+'/20 '+(pass?'✅ Можно засчитать':'❌ Меньше 15 правильных')+'</div></div>'
+      +'<div style="font-size:11px;color:var(--t3)">'+item.date+'</div></div>';
+    if(item.questions){
+      revHtml+='<div style="max-height:200px;overflow-y:auto;margin-bottom:8px">';
+      item.questions.forEach(function(q,qi){
+        var ua=item.answers[qi];
+        var correct=ua===q.ans;
+        revHtml+='<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--b);color:'+(correct?'var(--g)':'var(--r)')+'">'
+          +(qi+1)+'. '+q.q+'<br>'
+          +'<span>Ответ: '+q.opts[ua]+'</span>'
+          +(correct?'':' → Правильно: '+q.opts[q.ans])
+          +'</div>';
+      });
+      revHtml+='</div>';
+    }
+    revHtml+='<div style="display:flex;gap:8px">'
+      +'<button class="btn bg" '+(pass?'':'disabled style="opacity:0.4"')+' data-approve-book="'+item.id+'" data-child-id="'+item.childId+'" data-score="'+score+'"><i class="ti ti-check"></i>Засчитать +10 000 тг</button>'
+      +'<button class="btn bo" data-reject-book="'+item.id+'"><i class="ti ti-x"></i>Не засчитать</button>'
+      +'</div></div>';
+  });
+  pendingReviews.filter(function(p){return p.status==='pending'&&p.type!=='book';}).forEach(function(item){
     revHtml+='<div style="padding:12px 0;border-bottom:1px solid var(--b)">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
       +'<span style="font-size:22px">'+item.childAv+'</span>'
@@ -948,14 +1138,16 @@ function renderParent(){
     var cs=childData[c.id]||{};
     var pct=Math.min(1,(cs.wpts||0)/c.maxW);
     var base=Math.round(pct*c.maxP);
-    totalPay+=base;
+    var bookPay=cs.bookPay||0;
+    totalPay+=base+bookPay;
     return '<div style="padding:10px 0;border-bottom:1px solid var(--b)">'
       +'<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:14px;font-weight:600">'+c.av+' '+c.name+'</div>'
       +'<div style="font-size:13px;font-weight:600;color:var(--gd);background:var(--gl);padding:3px 10px;border-radius:99px">'+base.toLocaleString('ru')+' тг</div></div>'
-      +'<div style="font-size:11px;color:var(--t3);margin:3px 0 8px">'+Math.round(pct*100)+'% · '+(Math.round(pct*100)>=30?'✓ Порог пройден':'Ниже 30% — выплата 0')+'</div>'
+      +(bookPay>0?'<div style="font-size:12px;color:var(--g);margin:2px 0">📚 Книги: +'+bookPay.toLocaleString('ru')+' тг</div>':'')
+      +'<div style="font-size:11px;color:var(--t3);margin:3px 0 8px">'+Math.round(pct*100)+'%</div>'
       +'<div style="display:flex;align-items:center;gap:8px">'
       +'<span style="font-size:12px;color:var(--t2)">Бонус:</span>'
-      +'<input type="number" id="bn-'+c.id+'" placeholder="0" min="0" max="'+Math.round(c.maxP*0.1)+'" style="width:80px;border:1.5px solid var(--b);border-radius:var(--rs);padding:5px 8px;font-size:13px;text-align:center;background:var(--s)" data-bonus-input="1">'
+      +'<input type="number" id="bn-'+c.id+'" placeholder="0" min="0" max="'+Math.round(c.maxP*0.1)+'" style="width:80px;border:1.5px solid var(--b);border-radius:var(--rs);padding:5px 8px;font-size:13px;text-align:center;background:var(--s)" data-bonus-input="1" onchange="recalc()">'
       +'<span style="font-size:10px;color:var(--t3)">макс +'+Math.round(c.maxP*0.1).toLocaleString('ru')+' тг</span></div></div>';
   }).join('');
 
@@ -985,7 +1177,8 @@ window.recalc=function(){
     var pct=Math.min(1,(cs.wpts||0)/c.maxW);
     var base=Math.round(pct*c.maxP);
     var inp=document.getElementById('bn-'+c.id);
-    tot+=base+(inp?parseInt(inp.value||0)||0:0);
+    var bp=cs.bookPay||0;
+    tot+=base+(inp?parseInt(inp.value||0)||0:0)+bp;
   });
   var el=document.getElementById('tpay');
   if(el)el.textContent=tot.toLocaleString('ru')+' тг';
@@ -1017,8 +1210,9 @@ window.confPay=async function(){
     var base=Math.round(pct*c.maxP);
     var inp=document.getElementById('bn-'+c.id);
     var b=inp?parseInt(inp.value||0)||0:0;
-    rows.push({av:c.av,name:c.name,total:base+b});
-    await updateChild(c.id,{wpts:0,done:{}});
+    var bookPay=cs.bookPay||0;
+    rows.push({av:c.av,name:c.name,base:base,bonus:b,bookPay:bookPay,total:base+b+bookPay});
+    await updateChild(c.id,{wpts:0,done:{},bookPay:0});
   }
   var hist=[];
   try{var h=localStorage.getItem('payHistory');if(h)hist=JSON.parse(h);}catch(e){}
@@ -1100,6 +1294,30 @@ function setupEvents(){
     // save diary
     if(t.closest('#btn-save-diary')){await saveDiary();return;}
 
+    // book - I read button
+    var bookBtn=t.closest('[data-book-id]');
+    if(bookBtn){
+      var book={id:bookBtn.dataset.bookId,title:bookBtn.dataset.bookTitle,author:bookBtn.dataset.bookAuthor};
+      await generateBookTest(book);
+      return;
+    }
+
+    // book test - answer question
+    var bq=t.closest('[data-bq]');
+    if(bq&&activeBookTest){
+      var qi=parseInt(bq.dataset.bq);
+      var oi=parseInt(bq.dataset.bo);
+      activeBookTest.answers[qi]=oi;
+      renderContent();
+      return;
+    }
+
+    // book test - submit
+    if(t.closest('#btn-submit-book-test')){await submitBookTest();return;}
+
+    // book test - cancel
+    if(t.closest('#btn-cancel-book-test')){activeBookTest=null;renderContent();return;}
+
     // mood
     var mb=t.closest('[data-mood]');
     if(mb){await setMood(parseInt(mb.dataset.mood));return;}
@@ -1180,6 +1398,14 @@ function setupEvents(){
 
     // api setup
     if(t.closest('#btn-api-setup')){showApiSetup();return;}
+
+    // approve book
+    var abk=t.closest('[data-approve-book]');
+    if(abk){await approveBook(abk.dataset.approveBook,abk.dataset.childId,parseInt(abk.dataset.score));return;}
+
+    // reject book
+    var rbk=t.closest('[data-reject-book]');
+    if(rbk){await rejectBook(rbk.dataset.rejectBook);return;}
 
     // approve
     var ap=t.closest('[data-approve]');
