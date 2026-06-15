@@ -974,7 +974,7 @@ function renderParent(){
     +'<button class="btn bo" id="btn-api-setup"><i class="ti ti-settings"></i>'+(apiKey?'Изменить ключ':'Добавить API-ключ')+'</button></div>'
     +'<div class="card"><div class="ch"><i class="ti ti-plant"></i>Проект недели</div>'
     +'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Генерируется в понедельник автоматически. Или запусти вручную прямо сейчас для всех детей.</div>'
-    +'<button class="btn bg" id="btn-gen-project-parent"><i class="ti ti-sparkles"></i>Сгенерировать проект сейчас</button></div>'
+    +'<button class="btn bg" id="btn-gen-j" style="margin-bottom:8px"><i class="ti ti-sparkles"></i>Проект для младших</button>'+'<button class="btn bg" id="btn-gen-m" style="margin-bottom:8px;background:var(--al);color:var(--am)"><i class="ti ti-sparkles"></i>Проект для Алихана</button>'+'<button class="btn bg" id="btn-gen-s" style="background:#667eea;color:#fff"><i class="ti ti-sparkles"></i>Проект для Аслана</button></div>'
     +'<div class="card"><div class="ch"><i class="ti ti-refresh"></i>Контент дня</div>'+'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Обнови факты дня, викторину и слово дня для каждой группы отдельно.</div>'+'<button class="btn bg" id="btn-refresh-j" style="margin-bottom:8px"><i class="ti ti-refresh"></i>Обновить младших (Бахыт, Жасмин)</button>'+'<button class="btn bg" id="btn-refresh-m" style="margin-bottom:8px;background:var(--al);color:var(--am)"><i class="ti ti-refresh"></i>Обновить Алихана</button>'+'<button class="btn bg" id="btn-refresh-s" style="background:#667eea;color:#fff"><i class="ti ti-refresh"></i>Обновить Аслана</button></div>'    +'<div class="card"><div class="ch"><i class="ti ti-history"></i>История выплат</div>'+histHtml+'</div>';
 }
 
@@ -1125,25 +1125,23 @@ function setupEvents(){
     if(gp){stab(gp.dataset.goto,document.getElementById('nb2'));return;}
 
     // generate project from parent panel
-    if(t.closest('#btn-gen-project-parent')){
-      var btn3=t.closest('#btn-gen-project-parent');
-      btn3.innerHTML='<div class="spin" style="width:20px;height:20px;border-width:2px;margin:0 auto"></div>';
-      btn3.disabled=true;
-      // clear all caches
-      digestCache={j:null,m:null,s:null};
-      try{localStorage.removeItem('dig_j_'+gday());localStorage.removeItem('dig_m_'+gday());localStorage.removeItem('dig_s_'+gday());}catch(e){}
-      // call API sequentially — j first, then s (avoids cache collision)
+    // gen project per group
+    var genGr=null;
+    if(t.closest('#btn-gen-j'))genGr='j';
+    else if(t.closest('#btn-gen-m'))genGr='m';
+    else if(t.closest('#btn-gen-s'))genGr='s';
+    if(genGr){
+      var gbtn=t.closest('#btn-gen-'+genGr);
+      gbtn.innerHTML='<div class="spin" style="width:20px;height:20px;border-width:2px;margin:0 auto"></div>';
+      gbtn.disabled=true;
+      var genName=genGr==='j'?'младших':genGr==='m'?'Алихана':'Аслана';
+      digestCache[genGr]=null;
+      try{localStorage.removeItem('dig_'+genGr+'_'+gday());}catch(e){}
       (async function(){
-        toast('Генерирую проект для младших...');
-        var dj=await callApi('j');
-        if(dj){digestCache.j=dj;await storeWeekProjectForce(dj.weekProject,'j');}
-        toast('Генерирую проект для Алихана...');
-        var dm=await callApi('m');
-        if(dm){digestCache.m=dm;await storeWeekProjectForce(dm.weekProject,'m');}
-        toast('Генерирую проект для Аслана...');
-        var ds=await callApi('s');
-        if(ds){digestCache.s=ds;await storeWeekProjectForce(ds.weekProject,'s');}
-        if(dj||dm||ds){toast('Проекты готовы для всех! 🌱');}
+        toast('Генерирую проект для '+genName+'...');
+        var d=await callApi(genGr);
+        if(d){digestCache[genGr]=d;await storeWeekProjectForce(d.weekProject,genGr);}
+        if(d){toast('Проект готов для '+genName+'! 🌱');}
         else{toast('Ошибка — проверь API-ключ');}
         renderParent();
       })();
