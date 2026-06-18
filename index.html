@@ -721,8 +721,15 @@ async function storeWeekProject(wp,gr){
   for(var i=0;i<CHILDREN.length;i++){
     var c=CHILDREN[i];
     if(c.gr!==gr)continue;
-    var cs=childData[c.id]||{};
-    if(cs.weekProject&&cs.weekProject.weekStart===weekStart)continue;
+    // Читаем из Firestore напрямую — в памяти (childData) может быть null из-за race condition
+    try{
+      var snap=await getDoc(doc(db,'children',c.id));
+      var cs=snap.exists()?snap.data():{};
+      if(cs.weekProject&&cs.weekProject.weekStart===weekStart)continue;
+    }catch(e){
+      var cs2=childData[c.id]||{};
+      if(cs2.weekProject&&cs2.weekProject.weekStart===weekStart)continue;
+    }
     await updateChild(c.id,{weekProject:{weekStart:weekStart,title:wp.title,desc:wp.desc,mats:wp.mats||[],days:wp.days||[],pts:wp.pts,done:false,daysDone:[]}});
   }
 }
