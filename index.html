@@ -102,6 +102,8 @@ html,body{height:100%;width:100%;background:var(--s);font-family:-apple-system,B
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .review-img{width:100%;max-height:200px;object-fit:cover;border-radius:var(--rs);margin-bottom:10px}
 .badge-new{background:var(--g);color:white;font-size:10px;padding:1px 7px;border-radius:99px;margin-left:6px}
+.confetti-piece{position:fixed;width:10px;height:10px;top:-10px;border-radius:2px;animation:confetti-fall linear forwards;pointer-events:none;z-index:9999}
+@keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 </style>
 </head>
 <body>
@@ -168,10 +170,10 @@ const db=getFirestore(app);
 // ── CONSTANTS ──
 const PIN='1234'; // ← СМЕНИ НА СВОЙ
 const CHILDREN=[
-  {id:'bakhyt', name:'Бахытжан',age:8, av:'🐻',gr:'j',maxW:3000, maxP:4000},
-  {id:'zhasmin',name:'Жасмин',  age:9, av:'🦅',gr:'j',maxW:3000, maxP:4000},
-  {id:'alikhan',name:'Алихан',  age:11,av:'🦁',gr:'m',maxW:4000,maxP:6000},
-  {id:'aslan',  name:'Аслан',   age:15,av:'🐺',gr:'s',maxW:5000,maxP:8000}
+  {id:'bakhyt', name:'Бахытжан',age:8, av:'🐻',gr:'j',maxW:3500, maxP:5000},
+  {id:'zhasmin',name:'Жасмин',  age:9, av:'🦅',gr:'j',maxW:3500, maxP:5000},
+  {id:'alikhan',name:'Алихан',  age:11,av:'🦁',gr:'m',maxW:4200,maxP:6000},
+  {id:'aslan',  name:'Аслан',   age:15,av:'🐺',gr:'s',maxW:4200,maxP:8000}
 ];
 const DAYS=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
 const MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -213,7 +215,6 @@ const ACHS=[{ico:'🔥',n:'7 дней подряд'},{ico:'🧪',n:'Учёный
 const FALLBACK={
   j:{facts:[{type:'fin',tag:'Финансы 🇰🇿',text:'Тенге появился в 1993 году — символ независимости Казахстана!'},{type:'phy',tag:'Физика',text:'Небо синее потому что синие лучи рассеиваются в воздухе сильнее всего!'},{type:'nat',tag:'Природа 🇰🇿',text:'Снежный барс — символ Казахстана — прыгает на 9 метров в длину!'}],opinion:{q:'Если бы у тебя было 10 000 тенге — что бы сделал?',opts:['Потратил сразу','Накопил','Отдал половину']},quest:{title:'Охотник за монетами',desc:'Найди дома все монеты тенге и посчитай сумму!',steps:['Обыщи карманы и ящики','Разложи по номиналам','Посчитай сумму','Запиши результат'],pts:100,crit:'Показал монеты и сумму'},dinner:'Что бы ты изобрёл чтобы помочь всем людям?'},
   m:{facts:[{type:'fin',tag:'Финансы',text:'Первый банк в мире появился в Италии в 1472 году — он работает до сих пор!'},{type:'phy',tag:'Физика',text:'Молния нагревает воздух до 30 000°C — это в 5 раз горячее поверхности Солнца!'},{type:'nat',tag:'Природа',text:'Осьминог имеет три сердца и голубую кровь — два сердца качают кровь к жабрам, одно — к телу.'}],opinion:{q:'Что важнее при выборе друга: честность или доброта?',opts:['Честность','Доброта','Оба одинаково']},quest:{title:'Детектив физики',desc:'Найди дома 3 примера физических явлений и объясни как они работают.',steps:['Найди пример теплопередачи','Найди пример трения','Найди пример давления','Запиши объяснение каждого','Сфотографируй примеры'],pts:150,crit:'Фото и объяснения 3 явлений'},dinner:'Если бы ты мог изменить одно правило в школе — что бы это было?'},
-  m:{facts:[{type:'fin',tag:'Финансы',text:'Первый банк в мире появился в Италии в 1472 году — он работает до сих пор!'},{type:'phy',tag:'Физика',text:'Молния нагревает воздух до 30 000°C — это в 5 раз горячее поверхности Солнца!'},{type:'nat',tag:'Природа',text:'Осьминог имеет три сердца и голубую кровь — два сердца качают кровь к жабрам, одно к телу.'}],opinion:{q:'Что важнее при выборе друга: честность или доброта?',opts:['Честность','Доброта','Оба одинаково']},quest:{title:'Детектив физики',desc:'Найди дома 3 примера физических явлений и объясни как они работают.',steps:['Найди пример теплопередачи','Найди пример трения','Найди пример давления','Запиши объяснение каждого','Сфотографируй примеры'],pts:150,crit:'Фото и объяснения 3 явлений'},dinner:'Если бы ты мог изменить одно правило в школе — что бы это было?'},
   s:{facts:[{type:'fin',tag:'Финансы',text:'Инфляция ~8% в год. Деньги под подушкой теряют ценность — их нужно инвестировать.'},{type:'phy',tag:'Физика',text:'Wi-Fi — электромагнитные волны 2.4–5 ГГц. Данные передаются со скоростью света.'},{type:'nat',tag:'Природа',text:'Биомимикрия: велкро придуман по репейнику, нос поезда Синкансэн — по клюву зимородка.'}],opinion:{q:'Что важнее: интеллект или трудолюбие?',opts:['Интеллект','Трудолюбие','50/50']},quest:{title:'Анализ расходов',desc:'Составь список трат за неделю, раздели на категории.',steps:['Вспомни траты за 7 дней','Категории: еда, развлечения, транспорт','Посчитай % каждой категории','Найди где сэкономить 20%'],pts:200,crit:'Показал таблицу с категориями'},dinner:'Какой навык хочешь развить этим летом?'}
 };
 
@@ -289,8 +290,10 @@ async function updateChild(id,data){
   await setDoc(doc(db,'children',id),data,{merge:true});
 }
 
-async function addPoints(childId,pts){
+async function addPoints(childId,pts,reason){
   await updateDoc(doc(db,'children',childId),{pts:increment(pts),wpts:increment(pts)});
+  if(reason)logPoints(childId,pts,reason);
+  if(pts>=50)spawnConfetti();
 }
 
 function getCS(){return childData[curChild]||{pts:0,wpts:0,done:{},mood:null,diary:[],goal:null,vote:null,vday:-1};}
@@ -491,12 +494,26 @@ async function fetchDigest(gr){
       return digestCache[gr];
     }
   }catch(e){}
+  // Автогенерация — но НЕ трогаем weekProject если он уже есть на этой неделе
   var parsed=await callApi(gr);
   if(parsed){
     parsed.day=today;
+    // Защита недельного проекта: если уже есть актуальный — не перезаписываем
+    var weekStart=getWeekStart();
+    var hasActiveProject=false;
+    for(var i=0;i<CHILDREN.length;i++){
+      var c=CHILDREN[i];
+      if(c.gr!==gr)continue;
+      var cs=childData[c.id]||{};
+      if(cs.weekProject&&cs.weekProject.weekStart===weekStart){hasActiveProject=true;break;}
+    }
     digestCache[gr]=parsed;
     try{localStorage.setItem(ckey,JSON.stringify(parsed));}catch(e){}
     try{await setDoc(doc(db,'config','digest_'+gr),parsed);}catch(e){}
+    // Записываем проект только если его ещё нет на эту неделю
+    if(parsed.weekProject&&!hasActiveProject){
+      await storeWeekProject(parsed.weekProject,gr);
+    }
   }
   return parsed;
 }
@@ -523,7 +540,7 @@ window.voteOp=async function(i){
   var cs=getCS();
   if(cs.vday===t)return;
   await updateChild(curChild,{vote:i,vday:t});
-  await addPoints(curChild,20);
+  await addPoints(curChild,20,'Мнение дня');
   toast('+20 очков!');
 };
 
@@ -574,7 +591,7 @@ window.answerQuiz = async function(qi, oi, ans, pts) {
   done.push(qi);
   await updateChild(curChild, {quizDone: done, quizDay: today});
   if(oi === ans) {
-    await addPoints(curChild, pts);
+    await addPoints(curChild, pts,'Викторина: правильный ответ');
     toast('Правильно! +'+pts+' очков 🎉');
   } else {
     toast('Неверно 😔 Правильный ответ выделен');
@@ -810,7 +827,7 @@ window.toggleDay=async function(dn){
   else{arr.push(dn);}
   wp.daysDone=arr;
   await updateChild(curChild,{weekProject:wp});
-  if(idx<0)await addPoints(curChild,30);
+  if(idx<0)await addPoints(curChild,30,'День проекта недели');
   if(idx<0)toast('+30 очков за день проекта!');
 };
 
@@ -842,7 +859,7 @@ window.saveDiary=async function(){
   var entries=(cs.diary||[]).slice();
   entries.push({date:DAYS[now.getDay()]+', '+now.getDate()+' '+MON[now.getMonth()],text:inp.value.trim()});
   await updateChild(curChild,{diary:entries});
-  await addPoints(curChild,50);
+  await addPoints(curChild,50,'Дневник');
   toast('+50 очков! 📝');
 };
 
@@ -1008,11 +1025,13 @@ window.rejectBook=async function(pendId){
 // ── CHORES ──
 // Days: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
 var CHORES=[
-  {id:'ch_room',  title:'Уборка в комнате',     desc:'Порядок в шкафу с одеждой, на столах и полу.',    pts:50,  groups:['j','m','s'], days:[0,1,2,3,4,5,6]},
-  {id:'ch_gen',   title:'Генеральная уборка',    desc:'Помыть пол, пропылесосить, вытереть пыль.',        pts:150, groups:['j','m','s'], days:[2,5]},
-  {id:'ch_dust',  title:'Вытереть пыль',         desc:'Вытереть пыль на всех поверхностях в доме.',      pts:50,  groups:['j','m'],     days:[1,3,6]},
-  {id:'ch_water', title:'Полить деревья',         desc:'Полить все деревья и растения во дворе.',         pts:50,  groups:['m','s'],     days:[1,3,5]},
-  {id:'ch_lawn',  title:'Подстричь газон',        desc:'Подстричь газон вокруг дома.',                    pts:150, groups:['s'],         days:[5]},
+  {id:'ch_room',  title:'Уборка в комнате',                  desc:'Порядок в шкафу с одеждой, на столах и полу.',              pts:50,  groups:['j','m','s'], days:[0,1,2,3,4,5,6]},
+  {id:'ch_gen',   title:'Генеральная уборка',                 desc:'Помыть пол, пропылесосить, вытереть пыль.',                 pts:150, groups:['j','m','s'], days:[2,5]},
+  {id:'ch_dust',  title:'Вытереть пыль',                      desc:'Вытереть пыль на всех поверхностях в доме.',               pts:50,  groups:['j','m'],     days:[1,3,6]},
+  {id:'ch_water', title:'Полить деревья',                      desc:'Полить все деревья и растения во дворе.',                  pts:50,  groups:['m','s'],     days:[1,3,5]},
+  {id:'ch_lawn',  title:'Подстричь газон',                     desc:'Подстричь газон вокруг дома.',                             pts:150, groups:['s'],         days:[5]},
+  {id:'ch_yard_j',title:'Уборка территории + убрать за Лакки',desc:'Убери мусор на территории двора и убери за собакой Лакки.',pts:100, groups:['j'],         days:[1,3,5]},
+  {id:'ch_yard_s',title:'Убрать траву + уборка территории',   desc:'Убери скошенную траву и наведи порядок на всей территории.',pts:150, groups:['m','s'],     days:[1,3,5]},
 ];
 
 function getTodayChores(gr){
@@ -1064,11 +1083,24 @@ function renderProfile(){
      +'<button class="btn bo" style="margin-top:8px" id="btn-edit-goal"><i class="ti ti-edit"></i>Изменить цель</button>'
     :'<div style="display:flex;gap:8px;margin-top:4px"><input id="gi" type="text" placeholder="Напиши свою цель на лето..." style="flex:1;border:1.5px solid var(--b);border-radius:var(--rs);padding:9px 12px;font-size:13px;color:var(--t);background:var(--s)">'
      +'<button id="btn-save-goal" style="padding:0 16px;border:1.5px solid var(--b);border-radius:var(--rs);background:var(--w);font-size:14px;font-weight:600;cursor:pointer">OK</button></div>';
+  var log=getPointsLog(ch.id);
+  var logHtml=log.length===0
+    ?'<div style="font-size:13px;color:var(--t3)">Пока нет начислений</div>'
+    :log.slice(0,20).map(function(e){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)">'
+        +'<div style="font-size:13px;color:var(--t)">'+e.reason+'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<span style="font-size:11px;color:var(--t3)">'+e.date+' '+e.time+'</span>'
+        +'<span style="font-size:13px;font-weight:700;color:var(--g)">+'+e.pts+'</span>'
+        +'</div></div>';
+    }).join('');
+
   return '<div class="card"><div class="ph"><span class="pab">'+ch.av+'</span><div class="pname">'+ch.name+'</div><div class="plv">Уровень '+(lv+1)+' — '+LEVELS[lv].n+'</div>'
     +'<div class="lvrow"><span style="font-size:11px;color:var(--t3)">До следующего</span><div class="wb" style="flex:1;margin:0 8px"><div class="wbf" style="width:'+lp+'%"></div></div><span style="font-size:11px;font-weight:600;color:var(--g)">'+lp+'%</span></div></div></div>'
     +'<div class="sg"><div class="sc2"><div class="sn">'+pts+'</div><div class="sl2">Очки всего</div></div>'
     +'<div class="sc2"><div class="sn">'+(Array.isArray(cs.done)?0:Object.keys(cs.done||{}).length)+'</div><div class="sl2">Квестов</div></div>'
     +'<div class="sc2"><div class="sn" style="color:var(--g)">'+earn.toLocaleString('ru')+'</div><div class="sl2">тг на неделе</div></div></div>'
+    +'<div class="card"><div class="ch"><i class="ti ti-history"></i>История начислений</div>'+logHtml+'</div>'
     +'<div class="card"><div class="ch"><i class="ti ti-target"></i>Цель на лето</div>'+gpart+'</div>'
     +'<div class="card"><div class="ch"><i class="ti ti-award"></i>Достижения</div><div class="ag">'+ah+'</div></div>';
 }
@@ -1113,7 +1145,7 @@ function renderParent(){
     revHtml+='<div style="padding:12px 0;border-bottom:1px solid var(--b)">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
       +'<span style="font-size:22px">'+item.childAv+'</span>'
-      +'<div><div style="font-size:14px;font-weight:600;color:var(--t)">'+item.childName+' — '+({qt:'Быстрый квест',wp:'Большой проект',fq:'Семейный квест',ch_room:'Уборка комнаты',ch_gen:'Генеральная уборка',ch_dust:'Вытереть пыль',ch_water:'Полить деревья',ch_lawn:'Подстричь газон'}[item.qid]||item.qid)+'</div>'
+      +'<div><div style="font-size:14px;font-weight:600;color:var(--t)">'+item.childName+' — '+({qt:'Быстрый квест',wp:'Большой проект',fq:'Семейный квест',ch_room:'Уборка комнаты',ch_gen:'Генеральная уборка',ch_dust:'Вытереть пыль',ch_water:'Полить деревья',ch_lawn:'Подстричь газон',ch_yard_j:'Уборка территории + Лакки',ch_yard_s:'Убрать траву + территория'}[item.qid]||item.qid)+'</div>'
       +'<div style="font-size:11px;color:var(--t3)">'+item.date+' · +'+item.pts+' очков</div></div></div>'
       +(item.photoUrl?'<img src="'+item.photoUrl+'" class="review-img">':'')
       +'<div style="display:flex;gap:8px">'
@@ -1197,7 +1229,7 @@ window.approveQ=async function(pendId,childId,pts,qid){
   var done=(!cs.done||Array.isArray(cs.done))?{}:Object.assign({},cs.done);
   done[qid]=Math.floor(Date.now()/86400000);
   await updateChild(childId,{done:done});
-  await addPoints(childId,pts);
+  await addPoints(childId,pts,({qt:'Быстрый квест',wp:'Большой проект',fq:'Семейный квест',ch_room:'Уборка комнаты',ch_gen:'Генеральная уборка',ch_dust:'Вытереть пыль',ch_water:'Полить деревья',ch_lawn:'Подстричь газон',ch_yard_j:'Уборка территории + Лакки',ch_yard_s:'Убрать траву + территория'}[qid]||qid));
   toast(CHILDREN.find(function(c){return c.id===childId;}).name+' +'+pts+' очков! ✅');
 };
 
@@ -1256,6 +1288,48 @@ window.doSaveApiKey=async function(){
 
 // ── TOAST ──
 function toast(msg){var t=document.getElementById('tst');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2500);}
+
+// ── CONFETTI ──
+function spawnConfetti(){
+  var colors=['#1D9E75','#5DCAA5','#FFD700','#FF6B6B','#667eea','#f093fb','#4facfe'];
+  for(var i=0;i<60;i++){
+    (function(i){
+      setTimeout(function(){
+        var el=document.createElement('div');
+        el.className='confetti-piece';
+        el.style.left=Math.random()*100+'vw';
+        el.style.background=colors[Math.floor(Math.random()*colors.length)];
+        el.style.width=(6+Math.random()*8)+'px';
+        el.style.height=(6+Math.random()*8)+'px';
+        el.style.borderRadius=Math.random()>0.5?'50%':'2px';
+        el.style.animationDuration=(1.5+Math.random()*2)+'s';
+        el.style.animationDelay='0s';
+        document.body.appendChild(el);
+        setTimeout(function(){el.remove();},3500);
+      },i*30);
+    })(i);
+  }
+}
+
+// ── POINTS LOG ──
+function logPoints(childId, pts, reason){
+  try{
+    var key='plog_'+childId;
+    var log=[];
+    try{var s=localStorage.getItem(key);if(s)log=JSON.parse(s);}catch(e){}
+    var now=new Date();
+    var timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    var dateStr=now.getDate()+' '+MON[now.getMonth()];
+    log.unshift({pts:pts,reason:reason,time:timeStr,date:dateStr});
+    if(log.length>50)log=log.slice(0,50);
+    localStorage.setItem(key,JSON.stringify(log));
+  }catch(e){}
+}
+
+function getPointsLog(childId){
+  try{var s=localStorage.getItem('plog_'+childId);if(s)return JSON.parse(s);}catch(e){}
+  return[];
+}
 
 // ── PIN SETUP ──
 function setupPin(){
