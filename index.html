@@ -586,17 +586,10 @@ async function fetchParentDigest(){
       try{localStorage.setItem(ckey,JSON.stringify(parentDigestCache));}catch(e){}
       return parentDigestCache;
     }
-    // Еженедельный контент (стих, художник) — берём из Firestore если та же неделя
     var existing=snap.exists()?snap.data():null;
     var parsed=await callApiParent();
     if(parsed){
       parsed.day=today;
-      parsed.weekStart=weekStart;
-      // Защита: если стих/художник уже есть на этой неделе — не перезаписываем
-      if(existing&&existing.weekStart===weekStart){
-        if(existing.poem)parsed.poem=existing.poem;
-        if(existing.artist)parsed.artist=existing.artist;
-      }
       parentDigestCache=parsed;
       try{localStorage.setItem(ckey,JSON.stringify(parsed));}catch(e){}
       try{await setDoc(doc(db,'config','digest_parent'),parsed);}catch(e){}
@@ -692,8 +685,8 @@ function buildParentDev(data){
 
 function buildParentPoem(data){
   var p=data.poem||{};
-  if(!p.title)return '<div class="card"><div style="font-size:13px;color:var(--t3)">Стихотворение недели загружается...</div></div>';
-  return '<div class="card"><div class="ch"><i class="ti ti-feather"></i>📖 Стихотворение недели</div>'
+  if(!p.title)return '<div class="card"><div style="font-size:13px;color:var(--t3)">Стихотворение дня загружается...</div></div>';
+  return '<div class="card"><div class="ch"><i class="ti ti-feather"></i>📖 Стихотворение дня</div>'
     +'<div style="font-size:13px;color:var(--t3);margin-bottom:12px">'+p.author+'</div>'
     +'<div style="font-size:15px;font-weight:700;color:var(--t);margin-bottom:14px">«'+p.title+'»</div>'
     +'<div style="font-size:14px;color:var(--t);line-height:2;font-style:italic;white-space:pre-line;border-left:3px solid var(--g);padding-left:14px;margin-bottom:16px">'+p.text+'</div>'
@@ -706,15 +699,19 @@ function buildParentPoem(data){
 
 function buildParentArt(data){
   var a=data.artist||{};
-  if(!a.name)return '<div class="card"><div style="font-size:13px;color:var(--t3)">Художник недели загружается...</div></div>';
-  return '<div class="card"><div class="ch"><i class="ti ti-palette"></i>🎨 Художник недели</div>'
+  if(!a.name)return '<div class="card"><div style="font-size:13px;color:var(--t3)">Художник дня загружается...</div></div>';
+  return '<div class="card"><div class="ch"><i class="ti ti-palette"></i>🎨 Художник дня</div>'
     +'<div style="font-size:22px;font-weight:700;color:var(--t);margin-bottom:4px">'+a.name+'</div>'
     +'<div style="font-size:12px;color:var(--t3);margin-bottom:4px">'+a.years+' · '+a.movement+'</div>'
     +'<div style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:14px">'+a.bio+'</div>'
     +'<div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Картины</div>'
     +(a.paintings||[]).map(function(pic){
+      var wikiUrl='https://ru.wikipedia.org/wiki/'+encodeURIComponent(pic.title);
       return '<div style="background:var(--s);border-radius:var(--rs);padding:12px;margin-bottom:8px">'
-        +'<div style="font-size:14px;font-weight:700;color:var(--t);margin-bottom:2px">«'+pic.title+'»</div>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">'
+        +'<div style="font-size:14px;font-weight:700;color:var(--t)">«'+pic.title+'»</div>'
+        +'<a href="'+wikiUrl+'" target="_blank" style="font-size:11px;color:var(--g);text-decoration:none;white-space:nowrap;margin-left:8px">Смотреть →</a>'
+        +'</div>'
         +'<div style="font-size:11px;color:var(--t3);margin-bottom:8px">'+pic.year+'</div>'
         +'<div style="font-size:13px;color:var(--t2);line-height:1.55">'+pic.analysis+'</div>'
         +'</div>';
@@ -1415,7 +1412,9 @@ function renderParent(){
     +'<div class="card"><div class="ch"><i class="ti ti-plant"></i>Проект недели</div>'
     +'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Генерируется в понедельник автоматически. Или запусти вручную прямо сейчас для всех детей.</div>'
     +'<button class="btn bg" id="btn-gen-j" style="margin-bottom:8px"><i class="ti ti-sparkles"></i>Проект для младших</button>'+'<button class="btn bg" id="btn-gen-m" style="margin-bottom:8px;background:var(--al);color:var(--am)"><i class="ti ti-sparkles"></i>Проект для Алихана</button>'+'<button class="btn bg" id="btn-gen-s" style="background:#667eea;color:#fff"><i class="ti ti-sparkles"></i>Проект для Аслана</button></div>'
-    +'<div class="card"><div class="ch"><i class="ti ti-refresh"></i>Контент дня</div>'+'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Обнови факты дня, викторину и слово дня для каждой группы отдельно.</div>'+'<button class="btn bg" id="btn-refresh-j" style="margin-bottom:8px"><i class="ti ti-refresh"></i>Обновить младших (Бахыт, Жасмин)</button>'+'<button class="btn bg" id="btn-refresh-m" style="margin-bottom:8px;background:var(--al);color:var(--am)"><i class="ti ti-refresh"></i>Обновить Алихана</button>'+'<button class="btn bg" id="btn-refresh-s" style="background:#667eea;color:#fff"><i class="ti ti-refresh"></i>Обновить Аслана</button></div>'    +'<div class="card"><div class="ch"><i class="ti ti-history"></i>История выплат</div>'+histHtml+'</div>';
+    +'<div class="card"><div class="ch"><i class="ti ti-refresh"></i>Контент дня</div>'+'<div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Обнови факты дня, викторину и слово дня для каждой группы отдельно.</div>'+'<button class="btn bg" id="btn-refresh-j" style="margin-bottom:8px"><i class="ti ti-refresh"></i>Обновить младших (Бахыт, Жасмин)</button>'+'<button class="btn bg" id="btn-refresh-m" style="margin-bottom:8px;background:var(--al);color:var(--am)"><i class="ti ti-refresh"></i>Обновить Алихана</button>'+'<button class="btn bg" id="btn-refresh-s" style="background:#667eea;color:#fff"><i class="ti ti-refresh"></i>Обновить Аслана</button></div>'
+    +'<div class="card"><div class="ch"><i class="ti ti-user"></i>Контент Талгата</div><div style="font-size:13px;color:var(--t2);margin-bottom:10px;line-height:1.5">Принудительно обновить все блоки: факты, наука, классика, подкаст, стихотворение, художник.</div><button class="btn bg" id="btn-refresh-parent"><i class="ti ti-refresh"></i>Обновить контент Талгата</button></div>'
+    +'<div class="card"><div class="ch"><i class="ti ti-history"></i>История выплат</div>'+histHtml+'</div>';
 }
 
 window.recalc=function(){
@@ -1672,6 +1671,22 @@ function setupEvents(){
         var d=await callApi(refreshGr);
         if(d){d.day=gday();digestCache[refreshGr]=d;try{localStorage.setItem('dig_'+refreshGr+'_'+gday(),JSON.stringify(d));}catch(e){}try{await setDoc(doc(db,'config','digest_'+refreshGr),d);}catch(e){}}
         if(d){toast('Контент обновлён для '+grName+'! ✓');}
+        else{toast('Ошибка — проверь API-ключ');}
+        renderParent();
+      })();
+      return;
+    }
+    // refresh parent content
+    if(t.closest('#btn-refresh-parent')){
+      var rpbtn=t.closest('#btn-refresh-parent');
+      rpbtn.disabled=true;rpbtn.innerHTML='<div class="spin" style="width:20px;height:20px;border-width:2px;margin:0 auto"></div>';
+      parentDigestCache=null;
+      try{localStorage.removeItem('dig_parent_'+gday());}catch(e){}
+      (async function(){
+        toast('Обновляю контент Талгата...');
+        try{await setDoc(doc(db,'config','digest_parent'),{day:-1});}catch(e){}
+        var d=await fetchParentDigest();
+        if(d){toast('Контент Талгата обновлён! ✓');}
         else{toast('Ошибка — проверь API-ключ');}
         renderParent();
       })();
