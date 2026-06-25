@@ -547,7 +547,6 @@ async function fetchDigest(gr){
 var parentDigestCache=null;
 
 async function callApiParent(){
-  var apiKey=await getApiKey();
   if(!apiKey)return null;
   var now=new Date();
   var weekStart=getWeekStart();
