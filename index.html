@@ -2,6 +2,9 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Лагерь 2026">
@@ -174,7 +177,7 @@ const CHILDREN=[
   {id:'zhasmin',name:'Жасмин',  age:9, av:'🦅',gr:'j',maxW:3500, maxP:5000},
   {id:'alikhan',name:'Алихан',  age:11,av:'🦁',gr:'m',maxW:4200,maxP:6000},
   {id:'aslan',  name:'Аслан',   age:15,av:'🐺',gr:'s',maxW:4200,maxP:8000},
-  {id:'talgat', name:'Талгат',  age:null,av:'🧔',gr:'p',maxW:0,maxP:0}
+  {id:'talgat', name:'Папа и Мама', age:null, av:'🦉', gr:'p', maxW:0, maxP:0}
 ];
 const DAYS=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
 const MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -324,7 +327,7 @@ function stab(t,btn){
 function renderStrip(){
   document.getElementById('cstrip').innerHTML=CHILDREN.map(function(c){
     var pend=(pendingReviews||[]).filter(function(p){return p.childId===c.id&&p.status==='pending';}).length;
-    var sub=c.age?c.age+' лет':'Папа';
+    var sub=c.age?c.age+' лет':'🦉 Родители';
     return '<div class="cchip'+(c.id===curChild?' on':'')+'" data-child="'+c.id+'">'
       +'<span class="cav">'+c.av+(pend>0?'<sup style="font-size:9px;color:var(--g)">'+pend+'</sup>':'')+'</span>'
       +'<span class="cn">'+c.name+'</span>'
@@ -544,22 +547,53 @@ async function fetchDigest(gr){
 }
 
 // ── PARENT DIGEST ──
+// ── СТРАНЫ (50 стран с интересной историей) ──
+var COUNTRIES=[
+  {name:'Япония',flag:'🇯🇵'},{name:'Перу',flag:'🇵🇪'},{name:'Эфиопия',flag:'🇪🇹'},
+  {name:'Иран',flag:'🇮🇷'},{name:'Греция',flag:'🇬🇷'},{name:'Монголия',flag:'🇲🇳'},
+  {name:'Камбоджа',flag:'🇰🇭'},{name:'Исландия',flag:'🇮🇸'},{name:'Мали',flag:'🇲🇱'},
+  {name:'Мексика',flag:'🇲🇽'},{name:'Индия',flag:'🇮🇳'},{name:'Египет',flag:'🇪🇬'},
+  {name:'Бразилия',flag:'🇧🇷'},{name:'Вьетнам',flag:'🇻🇳'},{name:'Марокко',flag:'🇲🇦'},
+  {name:'Турция',flag:'🇹🇷'},{name:'Куба',flag:'🇨🇺'},{name:'Непал',flag:'🇳🇵'},
+  {name:'Нигерия',flag:'🇳🇬'},{name:'Колумбия',flag:'🇨🇴'},{name:'Китай',flag:'🇨🇳'},
+  {name:'Армения',flag:'🇦🇲'},{name:'Грузия',flag:'🇬🇪'},{name:'Сенегал',flag:'🇸🇳'},
+  {name:'Боливия',flag:'🇧🇴'},{name:'Пакистан',flag:'🇵🇰'},{name:'Танзания',flag:'🇹🇿'},
+  {name:'Ирак',flag:'🇮🇶'},{name:'Новая Зеландия',flag:'🇳🇿'},{name:'Португалия',flag:'🇵🇹'},
+  {name:'Аргентина',flag:'🇦🇷'},{name:'Мьянма',flag:'🇲🇲'},{name:'Гана',flag:'🇬🇭'},
+  {name:'Узбекистан',flag:'🇺🇿'},{name:'Чили',flag:'🇨🇱'},{name:'Шри-Ланка',flag:'🇱🇰'},
+  {name:'Судан',flag:'🇸🇩'},{name:'Нидерланды',flag:'🇳🇱'},{name:'Ямайка',flag:'🇯🇲'},
+  {name:'Ливан',flag:'🇱🇧'},{name:'Кения',flag:'🇰🇪'},{name:'Израиль',flag:'🇮🇱'},
+  {name:'Мадагаскар',flag:'🇲🇬'},{name:'Иордания',flag:'🇯🇴'},{name:'Эквадор',flag:'🇪🇨'},
+  {name:'Катар',flag:'🇶🇦'},{name:'Тунис',flag:'🇹🇳'},{name:'Афганистан',flag:'🇦🇫'},
+  {name:'Ямайка',flag:'🇯🇲'},{name:'Казахстан',flag:'🇰🇿'},
+];
+
 var parentDigestCache=null;
 
-async function callApiParent(){
+async function getCountryIndex(){
+  try{
+    var snap=await getDoc(doc(db,'config','parent_state'));
+    if(snap.exists()&&typeof snap.data().countryIndex==='number')return snap.data().countryIndex;
+  }catch(e){}
+  return 0;
+}
+
+async function callApiParent(country){
   if(!apiKey)return null;
   var now=new Date();
-  var weekStart=getWeekStart();
+  var cname=country?country.name:'неизвестная страна';
+  var cflag=country?country.flag:'🌍';
   var prompt='Сегодня '+DAYS[now.getDay()]+', '+now.getDate()+' '+MON[now.getMonth()]+' 2026.\n\n'
-    +'Создай дайджест для взрослого мужчины 35-45 лет, который хочет расширить кругозор и стать интересным собеседником.\n\n'
+    +'Создай дайджест для взрослого человека 35-45 лет, который хочет расширить кругозор и стать интересным собеседником.\n\n'
+    +'Страна дня: '+cname+' '+cflag+'\n\n'
     +'Только валидный JSON без markdown:\n'
     +'{\n'
-    +'"geo":{"country":"Название страны","capital":"Столица","flag":"Эмодзи флага","facts":["Факт 1 о культуре/истории","Факт 2 о традициях/людях","Факт 3 удивительный"]},\n'
+    +'"geo":{"country":"'+cname+'","flag":"'+cflag+'","capital":"Столица страны","region":"Регион мира, соседние страны, климат — 2-3 предложения","history":["Ключевой исторический факт 1","Ключевой исторический факт 2","Ключевой исторический факт 3"],"culture":"Традиции, кухня, менталитет — 2-3 предложения","wow":"Один удивительный или неожиданный факт об этой стране","phrase":{"original":"Фраза на местном языке","transcription":"Транскрипция на русском","translation":"Перевод на русский"}},\n'
     +'"science":{"field":"Нейробиология/Квантовая физика/Биология/Психология (чередуй каждый день)","concept":"Название концепции","explanation":"Объяснение простым языком 3-4 предложения","analogy":"Яркая аналогия из жизни"},\n'
     +'"classic":{"author":"Имя автора","work":"Название произведения","excerpt":"Отрывок 8-12 строк на русском языке","words":[{"word":"Слово1","def":"Определение"},{"word":"Слово2","def":"Определение"},{"word":"Слово3","def":"Определение"}]},\n'
     +'"podcast":{"show":"Название подкаста (реальный: Lex Fridman/Huberman Lab/Tim Ferriss/Hidden Brain/Revisionist History)","episode":"Примерная тема эпизода","takeaways":["Ключевой тезис 1","Ключевой тезис 2","Ключевой тезис 3"],"question":"Вопрос для размышления после прослушивания"},\n'
     +'"poem":{"title":"Название стихотворения","author":"Автор","text":"Полный текст стихотворения (8-16 строк)","meaning":"Глубокий смысл и сильные образы — 4-5 предложений","powerWords":["Сильное слово 1 — почему оно мощное","Слово 2","Слово 3"]},\n'
-    +'"artist":{"name":"Имя художника","years":"Годы жизни","movement":"Направление в искусстве","bio":"Биография 4-5 предложений","paintings":[{"title":"Название картины 1","year":"Год","analysis":"Разбор смысла и стиля 3-4 предложения"},{"title":"Название картины 2","year":"Год","analysis":"Разбор смысла и стиля"},{"title":"Название картины 3","year":"Год","analysis":"Разбор смысла и стиля"}]}\n'
+    +'"artist":{"name":"Имя художника","years":"Годы жизни","movement":"Направление в искусстве","bio":"Биография 4-5 предложений","paintings":[{"title":"Название картины 1","year":"Год","analysis":"Разбор смысла и стиля 3-4 предложения"},{"title":"Название картины 2","year":"Год","analysis":"Разбор"},{"title":"Название картины 3","year":"Год","analysis":"Разбор"}]}\n'
     +'}';
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
@@ -573,23 +607,28 @@ async function callApiParent(){
   }catch(e){console.error('Parent API error:',e);return null;}
 }
 
-async function fetchParentDigest(){
+async function fetchParentDigest(force){
   var today=gday();
-  var weekStart=getWeekStart();
   var ckey='dig_parent_'+today;
-  if(parentDigestCache&&parentDigestCache.day===today)return parentDigestCache;
-  try{var r=localStorage.getItem(ckey);if(r){parentDigestCache=JSON.parse(r);return parentDigestCache;}}catch(e){}
+  if(!force&&parentDigestCache&&parentDigestCache.day===today&&parentDigestCache.geo&&parentDigestCache.geo.region)return parentDigestCache;
+  if(!force){try{var r=localStorage.getItem(ckey);if(r){var cached=JSON.parse(r);if(cached&&cached.geo&&cached.geo.region){parentDigestCache=cached;return parentDigestCache;}else{localStorage.removeItem(ckey);}}}catch(e){}}
   try{
-    var snap=await getDoc(doc(db,'config','digest_parent'));
-    if(snap.exists()&&snap.data()&&snap.data().day===today){
-      parentDigestCache=snap.data();
-      try{localStorage.setItem(ckey,JSON.stringify(parentDigestCache));}catch(e){}
-      return parentDigestCache;
+    if(!force){
+      var snap=await getDoc(doc(db,'config','digest_parent'));
+      if(snap.exists()&&snap.data()&&snap.data().day===today&&snap.data().geo&&snap.data().geo.region){
+        parentDigestCache=snap.data();
+        try{localStorage.setItem(ckey,JSON.stringify(parentDigestCache));}catch(e){}
+        return parentDigestCache;
+      }
     }
-    var existing=snap.exists()?snap.data():null;
-    var parsed=await callApiParent();
+    var idx=await getCountryIndex();
+    var country=COUNTRIES[idx%COUNTRIES.length];
+    var nextIdx=(idx+1)%COUNTRIES.length;
+    try{await setDoc(doc(db,'config','parent_state'),{countryIndex:nextIdx},{merge:true});}catch(e){}
+    var parsed=await callApiParent(country);
     if(parsed){
       parsed.day=today;
+      parsed.countryIdx=idx;
       parentDigestCache=parsed;
       try{localStorage.setItem(ckey,JSON.stringify(parsed));}catch(e){}
       try{await setDoc(doc(db,'config','digest_parent'),parsed);}catch(e){}
@@ -650,8 +689,17 @@ function buildParentFacts(data){
   var sci=data.science||{};
   var geoHtml=geo.country
     ?'<div class="card"><div class="ch"><i class="ti ti-map-pin"></i>🌍 География дня — '+geo.flag+' '+geo.country+'</div>'
-      +'<div style="font-size:13px;color:var(--t2);margin-bottom:10px">Столица: <strong>'+geo.capital+'</strong></div>'
-      +(geo.facts||[]).map(function(f,i){return '<div class="fact ff"><div class="ftag">Факт '+(i+1)+'</div><div class="ft">'+f+'</div></div>';}).join('')
+      +'<div style="font-size:13px;color:var(--t3);margin-bottom:12px">Столица: <strong style="color:var(--t)">'+geo.capital+'</strong></div>'
+      +'<div class="fact ff"><div class="ftag">🗺️ Где находится</div><div class="ft">'+geo.region+'</div></div>'
+      +'<div style="margin:10px 0 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">🏛️ История</div>'
+      +(geo.history||[]).map(function(f,i){return '<div style="display:flex;gap:10px;margin-bottom:8px"><span style="font-size:16px;font-weight:700;color:var(--g);line-height:1">'+(i+1)+'</span><span style="font-size:13px;color:var(--t);line-height:1.55">'+f+'</span></div>';}).join('')
+      +'<div class="fact fp" style="margin-top:6px"><div class="ftag">🎭 Культура</div><div class="ft">'+geo.culture+'</div></div>'
+      +'<div class="fact fn" style="margin-top:6px"><div class="ftag">💡 Удивительный факт</div><div class="ft">'+geo.wow+'</div></div>'
+      +(geo.phrase?'<div style="background:var(--s);border-radius:var(--rs);padding:12px;margin-top:8px"><div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:6px">🗣️ Фраза на местном языке</div>'
+        +'<div style="font-size:15px;font-style:italic;color:var(--t);margin-bottom:4px">«'+geo.phrase.original+'»</div>'
+        +'<div style="font-size:12px;color:var(--t3);margin-bottom:2px">'+geo.phrase.transcription+'</div>'
+        +'<div style="font-size:13px;color:var(--g);font-weight:600">'+geo.phrase.translation+'</div>'
+        +'</div>':'')
       +'</div>'
     :'';
   var sciHtml=sci.concept
@@ -1683,10 +1731,9 @@ function setupEvents(){
       parentDigestCache=null;
       try{localStorage.removeItem('dig_parent_'+gday());}catch(e){}
       (async function(){
-        toast('Обновляю контент Талгата...');
-        try{await setDoc(doc(db,'config','digest_parent'),{day:-1});}catch(e){}
-        var d=await fetchParentDigest();
-        if(d){toast('Контент Талгата обновлён! ✓');}
+        toast('Обновляю контент для Папы и Мамы...');
+        var d=await fetchParentDigest(true);
+        if(d){toast('Контент обновлён! ✓');}
         else{toast('Ошибка — проверь API-ключ');}
         renderParent();
       })();
