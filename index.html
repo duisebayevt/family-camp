@@ -1413,7 +1413,7 @@ function renderParent(){
 
   // PROGRESS
   var totalPay=0;
-  var childRows=CHILDREN.map(function(c){
+  var childRows=CHILDREN.filter(function(c){return c.maxW>0;}).map(function(c){
     var cs=childData[c.id]||{};
     var pct=Math.min(100,Math.round((cs.wpts||0)/c.maxW*100));
     var base=Math.round((cs.wpts||0)/c.maxW*c.maxP);
@@ -1427,7 +1427,7 @@ function renderParent(){
   }).join('');
 
   // PAYOUTS
-  var payRows=CHILDREN.map(function(c){
+  var payRows=CHILDREN.filter(function(c){return c.maxW>0;}).map(function(c){
     var cs=childData[c.id]||{};
     var pct=Math.min(1,(cs.wpts||0)/c.maxW);
     var base=Math.round(pct*c.maxP);
@@ -1467,7 +1467,7 @@ function renderParent(){
 
 window.recalc=function(){
   var tot=0;
-  CHILDREN.forEach(function(c){
+  CHILDREN.filter(function(c){return c.maxW>0;}).forEach(function(c){
     var cs=childData[c.id]||{};
     var pct=Math.min(1,(cs.wpts||0)/c.maxW);
     var base=Math.round(pct*c.maxP);
