@@ -1461,7 +1461,7 @@ function renderParent(){
   var hist=[];
   try{var h=localStorage.getItem('payHistory');if(h)hist=JSON.parse(h);}catch(e){}
   var histHtml=hist.length===0?'<div style="font-size:13px;color:var(--t3)">Выплат пока не было</div>'
-    :hist.map(function(h){return '<div style="padding:8px 0;border-bottom:1px solid var(--b)"><div style="font-size:11px;color:var(--t3);margin-bottom:4px">'+h.date+'</div>'+h.rows.map(function(r){return '<div style="display:flex;justify-content:space-between;font-size:13px"><span>'+r.av+' '+r.name+'</span><span style="color:var(--g);font-weight:600">'+r.total.toLocaleString('ru')+' тг</span></div>';}).join('')+'</div>';}).join('');
+    :hist.map(function(h){return '<div style="padding:8px 0;border-bottom:1px solid var(--b)"><div style="font-size:11px;color:var(--t3);margin-bottom:4px">'+h.date+'</div>'+(h.rows||[]).map(function(r){return '<div style="display:flex;justify-content:space-between;font-size:13px"><span>'+r.av+' '+r.name+'</span><span style="color:var(--g);font-weight:600">'+(r.total||0).toLocaleString('ru')+' тг</span></div>';}).join('')+'</div>';}).join('');
 
   document.getElementById('pc').innerHTML=reviewCard
     +'<div class="card"><div class="ch"><i class="ti ti-users"></i>Прогресс на этой неделе<span class="sync-dot" style="margin-left:auto"></span></div>'+childRows+'</div>'
@@ -1514,6 +1514,7 @@ window.confPay=async function(){
   var rows=[];
   for(var i=0;i<CHILDREN.length;i++){
     var c=CHILDREN[i];
+    if(c.maxW<=0)continue;
     var cs=childData[c.id]||{};
     var pct=Math.min(1,(cs.wpts||0)/c.maxW);
     var base=Math.round(pct*c.maxP);
